@@ -1,130 +1,134 @@
+
 ##########################################################################################
 #                                                                                        #
-##              Fitting LGNN to Cod from fishery commercial & survey data               ##
+##              Modelling the spatio-temporal abundance dynamics of juvenile            ##
+##                    and adult cod stock along the Western Balitc Sea                  ##
+##                                    (Rufener et al.)                                  ##
 #                                                                                        #
 ##########################################################################################
 
+# Last update: February 2022
 
-
-# Paper III: Identify hotspot areas of cod spawners
-######################################################
-
-# This script is essentially the same as the one used for paper I, except that
-# here we also have additional data (2017-2019). Moreover,we will here 
-# consider as a "+" group Age 6, given that we have plenty of commercial data until then. 
-# The LGNB model will be run individually from Age_2 to Age_6.
+# Code written and mantained by Marie-Christine Rufener
+# Contact < macrufener@gmail.com > for any query or to report code issues.
 
 
 
-#~~~~~~~~~~~~~~~
-# Default inputs
-#~~~~~~~~~~~~~~~
-SAVE <- c("DISPLACE","PAPER")[1] # to specify wheter obj should be saved or not in env (DISPLACE: not saved; PAPER: saved)
-STOCK <- c("WBS","KAT")[1] #Specify to which stock the data should be subsetted
-INCLUDE  <- c("commercial", "survey", "both") [3]
-RESPONSE <- c("AgeGroup","Cohort")[1] #Choose whether model is applied for each SizeGroup, AgeGroup, or on a Cohort basis (when Nage).Default is set to SizeGroup.
-SUPPORT_AREA <- c("One","Several")[1] #Choose whether to use one or several support areas to describe the commercial fisheries data; Survey data is described by only single support area
-ALPHA <- c("No","Single", "Multi")[2] #Choose whether anhd how model should consider preferrential sampling parameter (alpha) or not.
-# Possibilites include: 
-# @ ALPHA = "No" -> Models without alpha parameter; can be applied either to model with one or several support areas.
-# @ ALPHA = "Single" -> Models with one alpha parameter for each data soruce; Used when commercial data are described by only one support area for the entire time series; Also applied when using survey data;
-# @ ALPHA = "Multi" -> Models with several alpha parameters to describe commercial data (when using several support areas); Does NOT apply to survey data;
+
+# This is the very first script to be performed.
+# The LGNB-SDM model (Rufener et al., 2021) is used to predict the spatial and temporal abundance dynamics
+# of both juvenile and adult individuals of Western Balitc cod stock. 
+# For technical details and a toy example of the model, please refer to:
+# https://github.com/mcruf/LGNB
+# https://doi.org/10.1002/eap.2453 
+
+# The present script is divided into the following 8 sections:
+## Section 1: Default inputs
+## Section 2: Load data files & packages
+## Section 3: Binding data files 
+## Section 4: Grid building
+## Section 5: Discretize commercial hauls 
+## Section 6: Defining the preferential sampling, if present 
+## Section 7: TMB processing 
+## Section 8: Fitting the LGNB model 
+
+# The rationale of the script is the same as in https://github.com/mcruf/LGNB, except that here
+# the model is run on a monthly time resolution, and sepparately for the age groups. 
+# This means that for each age group, we will get a map of predicted densities for each given time period. 
+# These predicted abundances will later be used to identify persisent abundance hotspot of juveniles and spawners.
 
 
-if(RESPONSE == "AgeGroup"){
-  MODEL_CONFIG <- "m1_A6" #Default model and AgeGroup
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Section 1: Default inputs
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+STOCK <- c("WBS","KAT")[1] # Specify to which stock the data should be subsetted (Western Baltic Sea or Kattegat)
+DATA  <- c("commercial", "survey", "both") [3] # Specify the desired input data for the model; default is commercial data-
+RESPONSE <- c("SizeGroup","AgeGroup","Cohort")[2] #Choose whether the model is applied for each SizeGroup, AgeGroup, or on a Cohort basis (when Nage).Default is set to SizeGroup.
+PS <- c("No","One","Two")[1] #Define how the sampling nature should be accounted for
+TIME <- c("YearMonth","YearQuarter","Year")[1] #Define the temporal resolution; default is set on a monthly basis
+
+
+# @ PS = "No" -> For both datasets (commercial, survey), no preferential sampling is accounted for.
+# @ PS = "One" -> Preferential sampling is accounted only for the commercial data.
+# @ PS = "Two" -> Preferential sampling is accounted in both survey and commercial data; applies only to the integrated model (DATA="both")
+
+
+
+# Specify the model structure; default model is m2for either size groups, age groups or cohort
+# Default size group is 5 (S5), age group is 3 (A3) and cohort from 2005.
+if(RESPONSE == "SizeGroup"){
+  MODEL_CONFIG <- "m1_S5" #Default model and SizeGroup 5
+}else if(RESPONSE == "AgeGroup"){
+  MODEL_CONFIG <- "m1_A6" #Default model and AgeGroup 6
 } else if(RESPONSE == "Cohort")
-  MODEL_CONFIG <- "m1_2008" #Default model if model is applied on cohort-basis (2005 cohort) 
+  MODEL_CONFIG <- "m1_2008" #Default model when applied on cohort-basis (2005 cohort) 
 
 
-# We go from the assumption that survey data has ALWAYS only one support area; one can choose whether to estimate the alpha-parameter or not. 
-if(INCLUDE == "survey"){
-  SUPPORT_AREA <- "One" 
-  ALPHA <- c("No","Single I")[1] # Default is Multi alphas for commercial; this automatically implies in several support areas
-}
-
-## Speedup + robustify fitting ? (side-effect sometimes unwanted: 'beta' becomes part of inner problem)
-PROFILE <- TRUE
-
-#~~~~~~~~~~~~~~~
-# For scripting
-#~~~~~~~~~~~~~~~
-if (exists("SCRIPT_INPUT")) {
-  input <- parse(text=SCRIPT_INPUT)
-} else {
-  input <- parse(text=Sys.getenv("SCRIPT_INPUT"))
-}
-print(input)
-eval(input)
-
-
-#~~~~~~~~~~~~~~~~~~~~~~
-# Validate script input
-#~~~~~~~~~~~~~~~~~~~~~~
-stopifnot(INCLUDE %in% c("commercial", "survey", "both"))
-
-
-#~~~~~~~~~~~~~~~~~~~~~~
-# Model configuration
-#~~~~~~~~~~~~~~~~~~~~~~
 MODEL_CONFIG <- strsplit(MODEL_CONFIG, "_")[[1]]
 MODEL_FORMULA <- MODEL_CONFIG[1]
 
-if(RESPONSE == "AgeGroup"){
+
+
+if(RESPONSE == "SizeGroup"){
+  SIZE <- MODEL_CONFIG[2]
+} else if(RESPONSE == "AgeGroup"){
   AGE <- MODEL_CONFIG[2]
 } else if(RESPONSE == "Cohort")
   YEARCLASS <- MODEL_CONFIG[2]
 
 
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Loading basic functions and libraries
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-if(.Platform$OS.type == "windows") setwd("C:/Users/mruf/Desktop/LGCP_MSPTOOLS/LGNB_test/")
-source("utilities.R") # Set of functions that are used along the script
-
-#devtools::install_github("kaskr/gridConstruct",subdir="gridConstruct")
-mLoad(raster,rgeos,maptools,maps,data.table,dplyr,TMB,sp,DATRAS,gridConstruct,rgdal,geosphere,devtools,plyr,fields)
-
-
+# For scripting (Useful when running on a HPC)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+input <- parse(text=Sys.getenv("SCRIPT_INPUT"))
+print(input)
+eval(input)
+stopifnot(DATA %in% c("commercial", "survey", "both"))
 
 
 #><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Section 2: Load data files & R packages
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# 1) Load fishery dependent and independent datasets  
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-##setwd("C:/Users/mruf/Desktop/LGCP_MSPTOOLS/LGNB_test/Data/")
-
-# 1.1) Fishery dependent data
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-## Smaller commercial dataset (only on-board observers data)
-#comFULL <- readRDS("Data/obodfad_clean.rds"); colnames(comFULL)[5] <- "haulduration_hours" #Change name for convencience
-comFULL <- readRDS("C:/Users/mruf/OneDrive - Danmarks Tekniske Universitet/PhD/Manuscript_03/Data/Commercial/commercial_FULL_Age.rds"); colnames(comFULL)[5] <- "haulduration_hours" #Change name for convencience
+# 2.1) Load helper functions and R libraries
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+source("~/src/utilities.R")
 
 
 
-## Full commercial dataset (several commercial data merged together - data used in the rejected paper version)
-#comFULL <- readRDS("FULL_commercial.rds"); colnames(comFULL)[1] <- "efid"
+#devtools::install_github("kaskr/gridConstruct",subdir="gridConstruct") # To install the gridConstruct package
+mLoad(raster,rgeos,maptools,maps,data.table,dplyr,TMB,sp,
+      DATRAS,gridConstruct,rgdal,geosphere,devtools,plyr,fields)
 
 
 
-
+# 2.2.1) Load commercial fisheries data (fishery-depedent)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+comFULL <- readRDS("E:/OneDrive - DTU/PhD/Manuscript_03/Data/Commercial/commercial_FULL_Age.rds"); colnames(comFULL)[5] <- "haulduration_hours" #Change name for convencience
 comFULL$stock <- ifelse(comFULL$Area=="21","KAT","WBS")
-
-
 
 
 
 # Subset data only for WBS cod and for the most representative gears
 commercial <- subset(comFULL, stock == STOCK & metiers %in% c("OTB_DEF_>=105_1_110","OTB_DEF_>=105_1_120"))
 
-#xtabs(age_2~YearQuarter,commercial)
+
+# Set data-specific column
+commercial$Data <- factor(rep("commercial", nrow(commercial)))
+
+
+# Drop unused factor levels
+commercial[,c("Month","Year","Quarter","Area","metiers","Data","HLID")] <- lapply(commercial[,c("Month","Year","Quarter","Area","metiers","Data","HLID")], factor)
+
+
+
+# Set haulduration to 1 (ensures that no offset is accounted in the commercial data)
+commercial$haulduration_hours <- 1 #Note: log(1)=0!
+
 
 
 #Calculate a 5+ group
@@ -133,32 +137,13 @@ commercial$age_5 <- rowSums(commercial[,c("age_5","age_6")])
 commercial$age_6 <- NULL
 
 
-# Include a data-specific identifier (to be used later in the combined model)
-commercial$Data <- paste("commercial")
 
-commercial$haulduration_hours <- 1 #set to 1, so that in the offset it gets 0 (log1=0)
-
-
-commercial[,c("Month","Year","Quarter","YearQuarter","Area","metiers","Data","HLID","stock")] <- lapply(commercial[,c("Month","Year","Quarter","YearQuarter","Area","metiers","Data","HLID","stock")], factor)
-#str(commercial)
-
-
-
-# The new dataset has good data until age group 6+.
-# I will thus run models from age_2-age_6+ to represent the spawners.
-
-
-
-
-# 1.2) Fishery indepdendent data
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#survey <- readRDS("Data/survey_FULL.rds") #same as the one used in the paper
-survey <- readRDS("C:/Users/mruf/OneDrive - Danmarks Tekniske Universitet/PhD/Manuscript_03/Data/Survey/survey_FULL_clean.rds") #same as the one used in the paper
+# 2.2.2) Load scientific survey data (Fishery-indepdendent)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+survey <- readRDS("E:/OneDrive - DTU/PhD/Manuscript_03/Data/Survey/survey_FULL_clean.rds") #same as the one used in the paper
 
 
 survey$stock <- ifelse(survey$Area=="21","KAT","WBS") #Stock ID
-survey$Country <- substr(survey$haul.id, start = 8, stop = 10) #Country ID
-survey$YearQuarter <- paste(survey$Year,survey$Quarter,sep=":")
 
 
 
@@ -168,7 +153,7 @@ survey <- filter(survey, stock == STOCK)
 
 
 # Include data-specific identifier (to be used later in the combined model)
-survey$Data <- paste("survey")
+survey$Data <- factor(rep("survey", nrow(survey)))
 
 
 # Remove info from length groups
@@ -183,19 +168,36 @@ survey[,20:22] <- NULL
 survey[,19][is.na(survey[,19])] <- 0
 
 
-survey[,c("Month","Year","Quarter","Area","Data","YearQuarter","haul.id","Ship","Gear","Country")] <- lapply(survey[,c("Month","Year","Quarter","Area","Data","YearQuarter","haul.id","Ship","Gear","Country")], factor)
-str(survey)
+survey[,c("Month","Year","Quarter","Area","Data","haul.id","Ship","Gear")] <- lapply(survey[,c("Month","Year","Quarter","Area","Data","haul.id","Ship","Gear")], factor)
 
 
 
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
 
 
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# 2) Bind survey and commercial datasets into a single dataset
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Section 3: Binding survey and commercial data files
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Binding depends whether response variable is on a cohort basis or AgeGroup/SizeGroup basis
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # 2.1.1) Cohort-basis
