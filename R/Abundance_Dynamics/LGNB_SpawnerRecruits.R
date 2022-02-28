@@ -60,7 +60,7 @@ TIME <- c("YearMonth","YearQuarter","Year")[1] #Define the temporal resolution; 
 if(RESPONSE == "SizeGroup"){
   MODEL_CONFIG <- "m1_S5" #Default model and SizeGroup 5
 }else if(RESPONSE == "AgeGroup"){
-  MODEL_CONFIG <- "m1_A6" #Default model and AgeGroup 6
+  MODEL_CONFIG <- "m1_A3" #Default model and AgeGroup 3
 } else if(RESPONSE == "Cohort")
   MODEL_CONFIG <- "m1_2008" #Default model when applied on cohort-basis (2005 cohort) 
 
@@ -183,82 +183,77 @@ survey[,c("Month","Year","Quarter","Area","Data","haul.id","Ship","Gear")] <- la
 # Binding depends whether response variable is on a cohort basis or AgeGroup/SizeGroup basis
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# 2.1.1) Cohort-basis
-#~~~~~~~~~~~~~~~~~~~~~
-# First we need to create a dataframe to ensure that both datasets have the same timelevels,
-# without any types of lacks (quarters or years -> otherwise this will create problems for the AR1 process)
-# Then, we extract the cohorts based on the previous created dataframe and for each data type
+# 3.1.1) Cohort-basis
+#~~~~~~~~~~~~~~~~~~~~~~~
+# First we need to create a dataframe in such way that both datasets have the same timelevels;
+# This is VERY important, as uneven timelevels will cause problems for the AR1 process.
 
 if(RESPONSE == "Cohort"){
   df_cohort  <- extractCohortLevels(commercial,survey,yearclass = as.numeric(YEARCLASS)) #Df with equal time-steps
-  NageGroup  <- length(grep("age_", names(commercial), value = TRUE))
+  NageGroup  <- length(grep("Age_", names(commercial), value = TRUE))
   tim        <- (as.numeric(YEARCLASS) + NageGroup)-1 #
-  df_cohort  <- subset(df_cohort, year %in% c(YEARCLASS:tim))
+  df_cohort  <- subset(df_cohort, Year %in% c(YEARCLASS:tim))
   
   cohort_com <- extract_cohort_quarter(commercial,df_cohort) #Extract cohort for commercial data
   cohort_sur <- extract_cohort_quarter(survey,df_cohort) #Extract cohort for survey data
   
-  cohort_com <- transform(cohort_com, HaulDur=haulduration_hours,numYear = as.numeric( as.character(Year)))
-  cohort_sur <- transform(cohort_sur, latStart=lat, lonStart=lon, latEnd=lat, lonEnd=lon,HLID=haul.id, numYear = as.numeric(as.character(Year)))
+  cohort_com <- transform(cohort_com, HaulDur=haulduration_hours, numYear = as.numeric( as.character(Year)))
+  cohort_sur <- transform(cohort_sur, latStart=lat, lonStart=lon, latEnd=lat, lonEnd=lon,
+                          HLID=haul.id, numYear = as.numeric(as.character(Year)))
   
   
-  # 2.1.2) AgeGroup-basis
-  #~~~~~~~~~~~~~~~~~~~~~~
+  # 3.1.2) AgeGroup-basis
+  #~~~~~~~~~~~~~~~~~~~~~~~~
 } else if (RESPONSE == "AgeGroup"){
-  age_com   <- transform(commercial, HaulDur=haulduration_hours, numYear = as.numeric( as.character(Year)))
+  age_com   <- transform(commercial,HaulDur=haulduration_hours, numYear = as.numeric( as.character(Year)))
   age_sur   <- transform(survey, latStart=lat, lonStart=lon, latEnd=lat, lonEnd=lon,
                          HLID=haul.id, numYear = as.numeric(as.character(Year)))
   
-} 
+  
+  # 3.1.3) SizeGroup-basis
+  #~~~~~~~~~~~~~~~~~~~~~~~~
+} else if(RESPONSE == "SizeGroup"){
+  size_com <- transform(commercial,HaulDur=haulduration_hours, numYear = as.numeric( as.character(Year)))
+  size_sur <- transform(survey, latStart=lat, lonStart=lon, latEnd=lat, lonEnd=lon,
+                        HLID=haul.id, numYear = as.numeric(as.character(Year)))
+  
+}
 
 
-# 2.2) Bind both datasets
-#~~~~~~~~~~~~~~~~~~~~~~~~
-if(RESPONSE == "Cohort" & INCLUDE =="both"){
+
+
+
+
+# 3.2) Bind both datasets into a single data frame
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if(RESPONSE == "Cohort" & DATA =="both"){
   datatot <- mybind(cohort_com, cohort_sur)
-} else if(RESPONSE == "Cohort" & INCLUDE == "survey"){
+} else if(RESPONSE == "Cohort" & DATA == "survey"){
   datatot <- cohort_sur
-} else if(RESPONSE == "Cohort" & INCLUDE == "commercial"){
+} else if(RESPONSE == "Cohort" & DATA == "commercial"){
   datatot <- cohort_com
-} else if (RESPONSE == "AgeGroup" & INCLUDE == "both"){
+} else if (RESPONSE == "AgeGroup" & DATA == "both"){
   datatot <- mybind(age_com, age_sur)
-} else if (RESPONSE == "AgeGroup" & INCLUDE == "survey") {
+} else if (RESPONSE == "AgeGroup" & DATA == "survey") {
   datatot <- age_sur
-} else if (RESPONSE == "AgeGroup" & INCLUDE == "commercial")
+} else if (RESPONSE == "AgeGroup" & DATA == "commercial"){
   datatot <- age_com
-
-
-# Create equally time spaced intervals - VERY important for the AR1 process
-# timeLevels <- as.vector(t(outer(min(datatot$numYear):max(datatot$numYear), 1:4, paste)))
-# datatot$YearQuarter <- factor(paste(datatot$Year, datatot$Quarter), levels=timeLevels)
-
-timeLevels <- as.vector(t(outer(min(datatot$numYear):max(datatot$numYear), 1:12, paste)))
-datatot$YearMonth <- factor(paste(datatot$Year, datatot$Month), levels=timeLevels)
-
+} else if (RESPONSE == "SizeGroup" & DATA == "both"){
+  datatot <- mybind(size_com, size_sur)
+} else if (RESPONSE == "SizeGroup" & DATA == "survey"){
+  datatot <- size_sur
+} else if(RESPONSE == "SizeGroup" & DATA == "commercial")
+  datatot <- size_com
 
 
 
-# 2.3) Define response variable for model applied on AgeGroup our SizeGroup basis
+
+
+# 3.3) Define response variable for model applied on AgeGroup our SizeGroup basis
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# For AgeGroups
+# 3.3.1) For AgeGroups
+#~~~~~~~~~~~~~~~~~~~~~~
 if(RESPONSE == "AgeGroup"){
   if(AGE == "A0"){
     datatot$Response <- as.numeric(paste(datatot$age_0))
@@ -272,12 +267,41 @@ if(RESPONSE == "AgeGroup"){
     datatot$Response <- as.numeric(paste(datatot$age_4))
   } else if (AGE == "A5"){
     datatot$Response <- as.numeric(paste(datatot$age_5))  
-  } else if (AGE == "A6"){
-    datatot$Response <- as.numeric(paste(datatot$age_6))
-  } else if (AGE == "A7"){
-    datatot$Response <- as.numeric(paste(datatot$age_7))
-  } else if (AGE == "A8"){
-    datatot$Response <- as.numeric(paste(datatot$age_8))
+  } 
+}
+
+
+# 3.3.2) For SizeGroups
+#~~~~~~~~~~~~~~~~~~~~~~~
+if(RESPONSE == "SizeGroup"){
+  if(SIZE == "S1"){
+    datatot$Response <- as.numeric(paste(datatot$SG_1))
+  } else if (SIZE == "S2") {
+    datatot$Response <- as.numeric(paste(datatot$SG_2))
+  } else if (SIZE == "S3"){
+    datatot$Response <- as.numeric(paste(datatot$SG_3))
+  } else if (SIZE == "S4"){
+    datatot$Response <- as.numeric(paste(datatot$SG_4))
+  } else if (SIZE == "S5"){
+    datatot$Response <- as.numeric(paste(datatot$SG_5))  
+  } else if (SIZE == "S6"){
+    datatot$Response <- as.numeric(paste(datatot$SG_6))
+  } else if (SIZE == "S7"){
+    datatot$Response <- as.numeric(paste(datatot$SG_7))
+  } else if (SIZE == "S8"){
+    datatot$Response <- as.numeric(paste(datatot$SG_8))
+  } else if (SIZE == "S9"){
+    datatot$Response <- as.numeric(paste(datatot$SG_9))
+  } else if (SIZE == "S10"){
+    datatot$Response <- as.numeric(paste(datatot$SG_10))
+  } else if (SIZE == "S11"){
+    datatot$Response <- as.numeric(paste(datatot$SG_11))
+  } else if (SIZE == "S12"){
+    datatot$Response <- as.numeric(paste(datatot$SG_12))
+  } else if (SIZE == "S13"){
+    datatot$Response <- as.numeric(paste(datatot$SG_13))
+  } else if (SIZE =="S14"){
+    datatot$Response <- as.numeric(paste(datatot$SG_14))
   }
 }
 
@@ -285,39 +309,65 @@ if(RESPONSE == "AgeGroup"){
 
 
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# 3) Building grid for the study area
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Grid for both survey and commercial data data should be the same.
-# Here we take the full commercial data to build the grid
+# 3.4) Create equally time spaced intervals - VERY important for the AR1 process
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+datatot$Year <- as.numeric(as.character(datatot$Year)) #Set as numeric to run the lines below
 
 
-# Creating a dataframe with mean values of long and lat (take as base the commercial data)
+if(TIME=="YearMonth"){
+  
+  timeLevels <- as.vector(t(outer(min(datatot$Year):max(datatot$Year), 1:12, paste)))
+  datatot$YearMonth <- factor(paste(datatot$Year, datatot$Month), levels=timeLevels)
+  
+} else if(TIME=="YearQuarter"){
+  timeLevels <- as.vector(t(outer(min(datatot$Year):max(datatot$Year), 1:4, paste)))
+  datatot$YearQuarter <- factor(paste(datatot$Year, datatot$Quarter), levels=timeLevels)
+  
+} 
+
+
+datatot$Year <- as.factor(datatot$Year) #Set back to factor
+
+
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Section 4: Building grid for the study area
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Grid for both commercial and survey data should be the same.
+# It doesn't matter wheter to construct grid based on commercial or survey data, and one can arbitrary choose which dataset to use.
+# Here we take the commercial data to do this.
+
+
+# 4.1) Creating a dataframe with mean values of long and lat
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 comFULL$lon_mean <- rowMeans(comFULL[,c("lonStart", "lonEnd")])
 comFULL$lat_mean <- rowMeans(comFULL[,c("latStart", "latEnd")])
 
-df <- data.frame(lon=comFULL$lon_mean, lat=comFULL$lat_mean)
+df <- data.frame(lon=comFULL$lon_mean, lat=comFULL$lat_mean) #temporary df
 
 
-# Building the grid
-#if(.Platform$OS.type == "windows") setwd("C:/Users/mruf/Desktop/LGCP_MSPTOOLS/LGNB_test/Shapefile/") #Specify directory with shapefile folder
-setwd("Shapefile")
-grid <- gridConstruct3(df,km=10,scale=1.2) #10 km grid
-setwd("..")
-gr <- gridFilter(grid,df,icesSquare = T,connected=T)
-# plot(gr)
-# plot(DK_map,add=T,fill=T,col="grey70")
-
+# 4.2) Building the grid
+#~~~~~~~~~~~~~~~~~~~~~~~~~
+if(.Platform$OS.type == "windows") setwd("C:/Users/mruf/Documents/LGNB/Shapefiles/")
+## Files can be downloaded at: https://github.com/mcruf/LGNB/tree/master/Shapefiles
+grid <- GridConstruct(df,km=10,scale=1.2) #Modified function from original gridConstruct. See "utilities.R" to see changes
+gr <- GridFilter(grid,df,icesSquare = T,connected=T) # filter out unnecessary spatial extensions; #Modified function from original gridConstruct. See "utilities.R" to see changes
+# shape <- readOGR(".", "CDK2_cutted"); plot(gr); plot(shape,add=T,col="grey70")
 
 
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# 4) Discretize and associate hauls along grid cells 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Section 5: Discretize and associate hauls along grid cells 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-# 4.1) Creating a data frame containing the trawl ID, starting long/lat and ending long/lat
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 5.1) Setting a data frame containing the haul ID, and start and end long/lat of the haul
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 dat <- data.frame(sampleID=datatot$HLID, start_long=datatot$lonStart,
                   start_lat=datatot$latStart, end_long=datatot$lonEnd, end_lat=datatot$latEnd)
 
@@ -325,32 +375,32 @@ dat <- data.frame(sampleID=datatot$HLID, start_long=datatot$lonStart,
 #segments(dat$start_long,dat$start_lat, dat$end_long, dat$end_lat, col="red",lwd=1.2)
 
 
-# 4.2) Define matrix for start/end long & lat
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-p1 <- matrix(c(dat$start_long,dat$start_lat), ncol=2)
-p2 <- matrix(c(dat$end_long,dat$end_lat), ncol=2)
+
+# 5.2) Define a matrix for the haul´s start and end position
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+mStart <- matrix(c(dat$start_long,dat$start_lat), ncol=2)
+mEnd <- matrix(c(dat$end_long,dat$end_lat), ncol=2)
 
 
-# 4.3) Interpolate intermediate points at regular distance (default is 1km)
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-nbpts <- floor(distance(dat$start_long,dat$start_lat, dat$end_long, dat$end_lat) / 1) # one point every 1 km ~ reasonable for a 5x5 km grid
+# 5.3) Interpolate points at regular distance (default is 1km)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+nbpts <- floor(distance(dat$start_long,dat$start_lat, dat$end_long, dat$end_lat) / 1) #one point every 1 km
+inter_pts <- gcIntermediate(mStart,mEnd, n=nbpts, addStartEnd=FALSE) 
 
 
-# 4.4) Get intermediate points 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-inter_pts <- gcIntermediate(p1,p2, n=nbpts, addStartEnd=FALSE) #inter_pts returns a list within several list. We need to convert this list to a single dataframe
 
-
-# 4.5) Create a dataframe to specify the frequency of match between each haul and grid ID. 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 5.4) Associate the discretized hauls to the grid ID 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Note that the haul Id MUST be a factor, where each level is the frequency of a particular haul crossing a specific grid ID
+stopifnot(is.factor(datatot$HLID))
+
 tmp <- lapply(1:length(inter_pts), function(i) {
   print(i)
   x <- inter_pts[[i]]
-  colnames(x) <- c("lon", "lat")
+  colnames(x) <- c("lon", "lat") #Needs to be the same names as those in inter_pts
   x <- as.data.frame(x)
-  haul.id <- datatot$HLID[i]
-  ind <- gridLocate(gr, x)
+  haul.id <- datatot$HLID[i] #Pick the specific haul id
+  ind <- gridLocate(gr, x) #Locate the grid ID
   data.frame(haul.id=haul.id, ind=ind, rowID = i) 
 })
 tmp2 <- do.call("rbind", tmp)
@@ -359,64 +409,64 @@ tmp2$gf <- factor(tmp2$ind, 1:nrow(gr))
 tmp2 <- tmp2[c("haulid","gf","rowID")] 
 
 
+# 7.3.2) Optimize and minimize the objective function
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# 5) Define support areas (to be used later in association to the alpha-parameter)
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# 5.1) For single support area
+
+
+
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Section 6: Defining the preferential sampling 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+# If a preferential sampling behaviour in the commercial and/or survey data
+# is accounted for, we have to define the so-called sampling support area.
+
+
+# 6.1) For single support area
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Applied when using only one alpha parameter for each dataset)
-datatot$split_area <- ifelse(as.character(datatot$Data)=="commercial", "commercial", "survey") #Same configuration as model with a single alpha parameter, where we have only one single support area describes the commercial data by aggregating all hauls of the time series.
-datatot$split_area <- as.factor(datatot$split_area)
+# Here the haul positions of the aggregated time-series are considered to assigne
+# a unique support area for the whole time-series.
 
-kk <- tmp2; kk$split <- datatot$split_area[tmp2$rowID]
-SupportAreaMatrix    <- table(kk$gf, kk$split)
+datatot$split_area <- ifelse(as.character(datatot$Data)=="commercial", "commercial", "survey") #Takes the haul positions of the aggregated time-series 
+datatot$split_area <- as.factor(datatot$split_area) #IMPORTANT - needs to be a factor!!
+tmpOne <- tmp2; tmpOne$split <- datatot$split_area[tmp2$rowID]
+SupportAreaMatrix    <- table(tmpOne$gf, tmpOne$split)
 SupportAreaMatrix[]  <- SupportAreaMatrix>0
 SupportAreaMatrix    <- ifelse(SupportAreaMatrix==0,FALSE,TRUE)
+# levels(datatot$split_area); levels(datatot$Data) #Check
 
 
-# 5.2) For multiple support areas
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Applied when using either one alpha parameter (collapsing all alphas into one), 
-# or multiple alphas for commercial data, and one alpha parameter for survey)
-if(SUPPORT_AREA == "Several"){
-  datatot$split_area2 <- ifelse(as.character(datatot$Data)=="commercial", as.character(datatot$YearQuarter), "survey") #Same configuration as model with a single alpha parameter, where we have only one single support area describing the commercial data.
-  datatot$split_area2 <- as.factor(datatot$split_area2)
-  
-  kk2 <- tmp2; kk2$split <- datatot$split_area2[tmp2$rowID]
-  SupportAreaMatrix2 <- table(kk2$gf, kk2$split)
-  SupportAreaMatrix2[] <- SupportAreaMatrix2>0
-  SupportAreaMatrix2 <- ifelse(SupportAreaMatrix2==0,FALSE,TRUE)
-}
 
 
-# 5.3) Setting support areas based on chosen input
+# 6.2) Setting support areas based on chosen input
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-if(INCLUDE == "commercial" & SUPPORT_AREA == "Several"){
-  SupportAreaMatrix2[] <- SupportAreaMatrix[,1]
-  SupportAreaMatrix <- SupportAreaMatrix2 
-} else if(INCLUDE == "both" & SUPPORT_AREA == "Several"){
-  SupportAreaMatrix2[,1:(ncol(SupportAreaMatrix2)-1)] <- SupportAreaMatrix[,1]
-  SupportAreaMatrix <- SupportAreaMatrix2 
-} else if(INCLUDE == "commercial" & SUPPORT_AREA == "One"){
-  SupportAreaMatrix <- SupportAreaMatrix
-} else if (INCLUDE == "both" & SUPPORT_AREA =="One"){
-  SupportAreaMatrix <- SupportAreaMatrix
-}
+# if(DATA == "commercial" || DATA == "both"){
+#   SupportAreaMatrix <- SupportAreaMatrix
+# }
+#image(gr, SupportAreaMatrix[,1]) #To see the progress..
 
 
-# Map haulid to data.frame rows (VERY IMPORTANT: haulid must match with the dataframe's row number (in increasing order))
+# 6.3) Map haulid to data.frame rows 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# VERY IMPORTANT: haulid must match with the dataframe's row number (in increasing order)
 rowid <- match(as.character(tmp2$haulid),as.character(datatot$HLID))
 stopifnot(all(is.finite(rowid)))
 rowid <- factor(rowid)
 
 
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
 
-# 6) Specifying spatio-temporal model with correlation among ages (cohort analysis)
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Section 7: TMB processing
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# 6.1) Sparse matrices for GMRF: Q = Q0+delta*I
+
+# 7.1) Sparse matrices for GMRF: Q = Q0+delta*I
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Q0 <- -attr(gr,"pattern")
 diag(Q0) <- 0
@@ -425,59 +475,41 @@ I <- .symDiagonal(nrow(Q0))
 
 
 
-# 6.2) Complile TMB
-#~~~~~~~~~~~~~~~~~~
-if(.Platform$OS.type == "windows") setwd("C:/Users/mruf/Desktop/LGCP_MSPTOOLS/LGNB_test/") #Go back to main folder 
+# 7.2) Compile LGNB-SDM model
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if(.Platform$OS.type == "windows") setwd("C:/Users/mruf/Documents/FishClosures/src") #Set your own directory where the C++ is stored
 #Sys.setenv(PATH="%PATH%;C:/Rtools/gcc-4.6.3/bin;c:/Rtools/bin") #Run only when on windows
-compile("model.cpp")
-dyn.load(dynlib("model"))
+compile("LGNB.cpp")
+dyn.load(dynlib("LGNB"))
 
 
 
-# 6.3) TMB Data
-#~~~~~~~~~~~~~~~
-# TMB data are set in such way that it recognizes automatically wheter one is using FD or FID data. 
+# 7.3) Prepare TMB data
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# TMB data are set in such way that it automatically
+# recognizes the data-specific inputs. 
+
+
+
+# 7.3.1) Linking R data to TMB data
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 data <- list(
-  #time = datatot$YearQuarter[rowid],
-  time = datatot$YearMonth[rowid],
-  gf = tmp2$gf  ,              
-  rowid = rowid  ,
+  time = if(TIME=="Year") {datatot$Year[rowid]} #Yearly resolution
+  else if(TIME=="YearQuarter") {datatot$YearQuarter[rowid]} #Quarterly resolution
+  else if(TIME=="YearMonth"){datatot$YearMonth[rowid]}, #Monthly resolution
+  gf = tmp2$gf,              
+  rowid = rowid,
   response = datatot$Response,
   Q0 = Q0,
   I = I,
   Xpredict = matrix(0,0,0),
   Apredict = factor(numeric(0)),
   SupportAreaMatrix = SupportAreaMatrix,
-  SupportAreaGroup = if(SUPPORT_AREA == "Several"){
-    as.factor(datatot$split_area2)
-  } else if(SUPPORT_AREA == "One"){
-    as.factor(datatot$split_area)
-  },
+  SupportAreaGroup = as.factor(datatot$split_area),
   Data=datatot$Data,
   h = mean(summary(as.polygons(gr))$side.length) #To be used later to plot the spatial decorrelation as a function of distance
 )
-
-
-
-# Guess time effects (needed by index calculation)
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-guess_time_effects_in_beta <- function(data, time_levels) {
-  cn <- colnames(data$X)
-  cn <- gsub(" ",":",time_levels)
-  tl <- gsub(" ",":",time_levels)
-  li <- lapply(tl, function(nm) grep(nm, cn) )
-  if (any( sapply(li, length) > 1 )) {
-    print(lapply(li, function(i)cn[i]))
-    warning("Time effect is not unique. Index calc will be omitted")
-    return (integer(0))
-  }
-  found <- sapply(li, function(x)x[1])
-  found[is.na(found)] <- 0
-  ## NOTE: Output length = length(time_levels)
-  ## NOTE: NAs coded as "-1" ===> SKIP index calc or crash !!!
-  as.integer(found) - 1L
-}
-
 
 
 
@@ -495,7 +527,6 @@ fit_model <- function(data, model_struct=NULL, with_static_field=FALSE, profile=
     ## Stuff for prediction: Dummy dataset that matches the space time grid:
     ## Xpredict: design matrix for prediction
     ## Apredict: Area factor for prediction
-    ##DFpredict <- expand.grid(gf=levels(data$gf), time=levels(data$time))
     DFpredict <- expand.grid(gf=levels(data$gf), time=levels(data$time))
     ## FIXME: We should include depth and covariates here !
     ##        But that requires depth on the entire grid...
@@ -506,10 +537,6 @@ fit_model <- function(data, model_struct=NULL, with_static_field=FALSE, profile=
     data$Xpredict <- tmp
     data$Apredict <- factor(icesSquare(gr))
   }
-  ## Perhaps we want measure all indices relative to a fixed reference square:
-  ##   plot(cod, plot.response = FALSE)
-  ## "42G1" seems appropriate
-  ## data$refindex <- which(levels(data$Apredict) == "42G1")
   data$refindex <- 0 ## <-- Disable
   
   parameters <- list(
@@ -545,19 +572,19 @@ fit_model <- function(data, model_struct=NULL, with_static_field=FALSE, profile=
   map <- list()
   if(TRUE) map$logsd_nugget <- factor(NA)
   
-  if(ALPHA == "No" & INCLUDE == "both"){
+  if(PS == "No" & DATA == "both"){
     map$alpha <- factor(rep(NA,nlevels(data$SupportAreaGroup)))
-  } else if(ALPHA == "No" & INCLUDE == "commercial") {
+  } else if(PS == "No" & DATA == "commercial") {
     map$alpha <- factor(rep(NA,nlevels(data$SupportAreaGroup)))
-  } else if(ALPHA == "No" & INCLUDE == "survey"){
+  } else if(PS == "No" & DATA == "survey"){
     map$alpha <- factor(rep(NA,nlevels(data$SupportAreaGroup)))
-  } else if(ALPHA == "Single"){
+  } else if(PS == "One"){
     lev <- levels(data$SupportAreaGroup)
     lev[lev=="survey"] <- NA
     map$alpha <- factor(lev)
-  } else if(ALPHA == "Multi"){
+  } else if(PS == "Two"){
     lev <- levels(data$SupportAreaGroup)
-    lev[lev=="survey"] <- NA
+    #lev[lev=="survey"] <- NA
     map$alpha <- factor(lev)
     # map$alpha = factor(map$alpha)
   } 
@@ -571,7 +598,7 @@ fit_model <- function(data, model_struct=NULL, with_static_field=FALSE, profile=
   
   obj <- MakeADFun(data, parameters, random=c("eta_density","eta_nugget","eta_static","beta_r"),
                    profile = profile,
-                   map=map, DLL="model")
+                   map=map, DLL="LGNB")
   
   obj$env$tracepar <-TRUE
   
@@ -603,91 +630,101 @@ fit_model <- function(data, model_struct=NULL, with_static_field=FALSE, profile=
 
 
 
+# 7.3.3) Include environmental covariates for prediction
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Build Matrices for the model
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-buildModelMatrices <- function(fixed, random=NULL, ..., offset=NULL, static=NULL, data) {
-  mm <- function(formula, data) {
-    ##myna<-function(object,...){object[is.na(object)]<-0; object}
-    mf <- model.frame(formula, data, na.action=na.pass)
-    ans <- model.matrix(formula, mf)
-    ans[is.na(ans)] <- 0
-    ans
-  }
-  Xf <- mm(fixed, data=data)
-  if(!is.null(random))
-    Xr <- lapply(list(random, ...), mm, data=data)
-  else
-    Xr <- list(matrix(NA, nrow(Xf), 0))
-  if(!is.null(static))
-    Xs <- mm(static, data=attr(data,"static"))
-  else
-    #Xs <- matrix(NA, 0, 0) # Kasper's version; works on my local machine but not in hpc
-    Xs <- matrix(NA, nrow(gr), 0) #works on both local machine and hpc
-  nr <- sapply(Xr, ncol)
-  nf <- ncol(Xf)
-  beta <- rep(0, nf)
-  beta_r <- rep(0, sum(nr))
-  beta_r_fac <- factor(rep(1:length(nr), nr))
-  beta_r_logsd <- rep(0, nlevels(beta_r_fac))
-  offset <- eval(offset, data)
-  ns <- ncol(Xs)
-  beta_s <- rep(0, ns)
-  if(!is.null(offset)) stopifnot(is.numeric(offset)) else offset <- numeric(0)
-  list(Xf=cbind(Xf, do.call("cbind", Xr)), Xs=Xs, nr=nr, nf=nf, ns=ns, beta=beta, beta_s=beta_s, beta_r=beta_r, beta_r_fac=beta_r_fac, beta_r_logsd=beta_r_logsd, offset=offset)
-}
+# NOTE: Ignore this step if you want to predict the abundance only 
+# as a function of the spatio-temporal correlation paramaters
+
+
+#source("C:/Users/mruf/Documents/LGNB/R/Extract_Covariates_Prediction.R")
+# covariates <- readRDS("../Data/pred_covariates.rds")
+# 
+# attr(datatot, "static") <- covariates
 
 
 
 
-# Fit models
-#~~~~~~~~~~~~
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
 
-# Note:
-# All models include the time-period as fixed effect (YearQuarter), and we also account for the haul duration (column HaulDur in the data) as an offset.
-# For the commercial data, we might think of including the vessel ID as a random effect (efid column in the data)
-# and maybe the metier as a fixed effect (there are presently only two; see table(commercial$metiers)).
-# For survey, we have two vessels (table(survey$Ship)), and the possibility of including them as fixed effect
-# was also discussed
-# The combined model includes an additional column, which is the data-specific identifies (see table(datatot$Data))
-# But here I'm not sure whether the "metiers" and "Ship" fixed effect from the commercial and survey data, respectively,
-# should also be included? In doubt, I included them here
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Section 8: Fitting LGNB model
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# The model matrices were now built in such way that it allows to include both fixed and random effects;
+# If random effects are included, then a separated formula needs to be specified for each random effect,apart from the fixed effect formula;
+# E.g.: buildModelMatrices (~ Fix_A + Fix_B, ~ Random_C -1, ~ Random_D -1);
+# In this example, two variables (A and B) are included as fixed effect, and two as random (C and D);
+
+# Note that when a model contains one or more factor covariate (either as fixed or random effect)
+# that is data-specific (e.g. metier), one needs to fit the model in such way that it runs with
+# the whole formula structure (~ time, ~ metier - 1) for the data in which the factor is present
+# (in this case commercial and combined model), and with a subsetted formula structure (~ time)
+# for the data in which the factor does not appear (in this case the survey model)
+
+# Note, also, that the buildMoldeMatrices function allows you to specify
+# two ways of including the fixed effect of the covariates (if present).
+# The first way includes the covariates in the observation process, while the
+# second way does it in the latent process. 
+# Including covariates in the observation process allows to account for factors that are
+# thought to affect the catchability, whereas in the second case it accounts for factors
+# that are believed to affect the underlying abundance density field.
+
+
+# But first, we need to revers the level order of the data, such that
+# the survey data comes always first. THIS is very important, as the survey
+# data will always be treated as the reference level; hence, everything is being
+# parametrized upon the survey data
+
 
 ## Reverse levels (to re-parameterize)
-## FIXME: Ensure that "survey" always comes first
-data$Data <- factor(data$Data, rev(levels(data$Data)) )
-datatot$Data <- factor(datatot$Data, rev(levels(datatot$Data)) )
+data$Data <- factor(data$Data, rev(levels(data$Data))) #Make sure that survey data comes always first!
+datatot$Data <- factor(datatot$Data, rev(levels(datatot$Data))) #Make sure that survey data comes always first!
+
+
+
+
 
 if (MODEL_FORMULA == "m1") {
-  if(INCLUDE == "commercial"){
-    m1 <- buildModelMatrices(~  -1 + YearMonth + metiers,~ -1 + efid, offset= quote(log(HaulDur)), data=datatot)
-  } else if(INCLUDE == "survey"){
-    m1 <- buildModelMatrices(~ -1 + YearMonth + Ship, offset = quote(log(HaulDur)), data=datatot)
-  } else {
-    #m1 <- buildModelMatrices(~ -1 + YearQuarter + Ship + Data + metiers, ~ -1 + efid, offset= quote(log(HaulDur)), data=datatot)
-    m1 <- buildModelMatrices(~ -1 + YearMonth + Ship + Data + metiers, ~ -1 + efid, offset= quote(log(HaulDur)), data=datatot)
+  if(DATA == "commercial"){
+    if(TIME == "YearMonth"){
+      m1 <- buildModelMatrices(fixed = ~  -1 + YearMonth + metiers,~ -1 + efid, offset= quote(log(HaulDur)), data=datatot)
+    } else if(TIME == "YearQuarter"){
+      m1 <- buildModelMatrices(fixed = ~  -1 + YearQuarter + metiers,~ -1 + efid, offset= quote(log(HaulDur)), data=datatot)
+    } else if(TIME == "Year"){
+      m1 <- buildModelMatrices(fixed = ~  -1 + Year + metiers,~ -1 + efid, offset= quote(log(HaulDur)), data=datatot)
+    }
     
-  }
-  system.time( env1 <- fit_model(data, m1, with_static_field = F, profile=PROFILE) )
-}
-
-## No vessel specific random effects
-if (MODEL_FORMULA == "m0") {
-  if(INCLUDE == "commercial"){
-    m0 <- buildModelMatrices(~  -1 + YearQuarter + metiers, offset= quote(log(HaulDur)), data=datatot)
-  } else if(INCLUDE == "survey"){
-    m0 <- buildModelMatrices(~ -1 + YearQuarter + Ship, offset = quote(log(HaulDur)), data=datatot)
+  } else if(DATA == "survey"){
+    if(TIME == "YearMonth"){
+      m1 <- buildModelMatrices(fixed = ~ -1 + YearMonth + Ship, offset = quote(log(HaulDur)), data=datatot)
+    } else if(TIME == "YearQuarter"){
+      m1 <- buildModelMatrices(fixed = ~ -1 + YearQuarter + Ship, offset = quote(log(HaulDur)), data=datatot)
+    } else if(TIME == "Year"){
+      m1 <- buildModelMatrices(fixed = ~ -1 + Year + Ship, offset = quote(log(HaulDur)), data=datatot)
+    }
+    
   } else {
-    m0 <- buildModelMatrices(~ -1 + YearQuarter + Ship + Data + metiers, offset= quote(log(HaulDur)), data=datatot)
+    if(TIME == "YearMonth"){
+      m1 <- buildModelMatrices(fixed = ~ -1 + YearMonth + Ship + Data + metiers, ~ -1 + efid, offset= quote(log(HaulDur)), data=datatot)
+    } else if (TIME == "YearQuarter"){
+      m1 <- buildModelMatrices(fixed = ~ -1 + YearQuarter + Ship + Data + metiers, ~ -1 + efid, offset= quote(log(HaulDur)), data=datatot)
+    } else if(TIME == "Year"){
+      m1 <- buildModelMatrices(fixed = ~ -1 + Year + Ship + Data + metiers, ~ -1 + efid, offset= quote(log(HaulDur)), data=datatot)
+    }
   }
-  system.time( env1 <- fit_model(data, m0, with_static_field = F, profile=PROFILE) )
+  system.time( env1 <- fit_model(data, m1, with_static_field = F, profile=F) )
 }
 
 
 
-#~~~~~~~~~~~~~
-# Save results
-#~~~~~~~~~~~~~
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 
 
 #chk <- checkConsistency(obj, n=1000)
@@ -703,4 +740,46 @@ if (MODEL_FORMULA == "m0") {
 OUTFILE  <-
   paste("results_WBScod", paste(MODEL_CONFIG, collapse="_"), INCLUDE, ALPHA, SUPPORT_AREA, "noprofile"[!PROFILE], ".RData", sep="_")
 save.image(file=OUTFILE)
+
+
+
+
+# Extract the results
+#~~~~~~~~~~~~~~~~~~~~~~env1$sdr #get TMB sdreport
+env1$s.fixed #get fixed-effect values
+env1$s.random
+
+
+
+
+# Plotting
+pl <- as.list(env1$sdr, "Estimate") #for the estimated abundances
+plsd <- as.list(env1$sdr, "Std. Error") #for the SE of the estimated abundances
+
+
+nr <- nlevels(factor(datatot$Year))
+nc <- 4
+
+par(mfrow=c(nr,nc))
+
+
+
+# Plot estimated abundance fields
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+for(i in 1:ncol(pl$eta_density)){
+  image(gr, concTransform(pl$eta_density[,i]),col=tim.colors(99))
+  title(levels(datatot$YearQuarter)[i])
+}
+
+
+
+# For the SE of the estimated abundance field
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+for(i in 1:ncol(pl$eta_density)){
+  image(gr, concTransform(plsd$eta_density[,i]),col=tim.colors(99))
+  title(levels(datatot$YearQuarter)[i])
+}
+
+
+
 
