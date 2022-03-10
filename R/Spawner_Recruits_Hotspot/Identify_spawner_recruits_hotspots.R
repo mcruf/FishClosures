@@ -16,16 +16,8 @@
 # The model was run on a monthly basis from 2005-2019, which means that we get
 # predicted abundance maps for each month of the time series.
 
-
-# In order to identify and evaluate the persistency of recruits (A0-A2) and spawner abundance hotspot, we will have to follow three consecutive steps:
-
-### Step 1) Stack the YearMonth abundance layers of the individual age groups. For each YearMonth map, we then sum over all abundance values across the spatial grid IDs.
-### This provides an "total juvenile abundance" layer for each YearMonth, and is essentially analogous
-### to the predict first, assemble later approach (Ferrier and Guisan, 2006)
-
-### Step 2) Take the generated YearMonth maps and evaluate the abundance hotspots following Bartolino's et al. (2011) approach - A frequency distribution approach to hotspot identification
-
-#### Step 3) Evaluate the presistency of the identified hotpost along the considered time period by using Colloca's et al. (2009) approach - Identifying fish nurseries using density and presistence areas
+# Here, we identify and evaluate the persistency of recruits (A0-A2) and spawner abundance hotspot.
+# To do so, the present script follows the following steps:
 
 
 
@@ -39,7 +31,7 @@
 # Section 1: Set default inputs
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Lstage <- c("Recruits","Spawners")[1] #Set appropriate life stage for which the abundance hotspot should be identified; default is "Recruits"
+Lstage <- c("Juveniles","Spawners")[1] #Set appropriate life stage for which the abundance hotspot should be identified; default is "Recruits"
 
 
 
@@ -89,33 +81,30 @@ library(fishualize)
 
 
 
-
-
-
-
-if(Lstage == "Recruits"){
-  
+if(Lstage == "Juveniles"){
   
   ## Set WD where the recruits results are stored
-  setwd("C:/Users/mruf/Documents/FishClosures/Data/Hotspots/Recruits/")
+  #setwd("~/Data/Hotspots/Recruits/")
+  setwd("C:/Users/mruf/Documents/Fish_Closures/Data/Hotspots/Recruits/")
   
+
   
   ## A0
-  load("results_WBScod_m1_A0_survey_No_One_noprofile_.RData")
+  load("A0.rds")
   A0 <- as.list(env1$sdr,"Estimate"); A0  <- as.data.frame(A0$eta_density)
-  rm(list=setdiff(ls(), ls(pattern=c("A0|A1|A2|gr|datatot"))))
+  rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|datatot|spawn_month"))))
   
   
   ## A1
-  load("results_WBScod_m1_A1_survey_No_One_noprofile_.RData")
+  load("A1.rds")
   A1 <- as.list(env1$sdr,"Estimate"); A1  <- as.data.frame(A1$eta_density)
-  rm(list=setdiff(ls(), ls(pattern=c("A0|A1|A2|gr|datatot"))))
+  rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|datatot|spawn_month"))))
   
   
-  ## A1
-  load("results_WBScod_m1_A2_both_No_One_noprofile_.RData")
+  ## A2
+  load("A2.rds")
   A2 <- as.list(env1$sdr,"Estimate"); A2  <- as.data.frame(A2$eta_density)
-  rm(list=setdiff(ls(), ls(pattern=c("A0|A1|A2|gr|datatot"))))
+  rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|datatot|spawn_month"))))
   
   
   
@@ -128,7 +117,11 @@ if(Lstage == "Recruits"){
   
   
   ## Set WD where the recruits results are stored
-  setwd("C:/Users/mruf/Documents/FishClosures/Data/Hotspots/Spawners/")
+  #setwd("~/Data/Hotspots/Spawners/")
+  setwd("C:/Users/mruf/Documents/Fish_Closures/Data/Hotspots/Spawners/")
+  
+  
+  
   
   ##  Select columns corresponding to the spawning monhts (JAN-MARCH)
   spawn_months <- c("V1","V2","V3", #2005
@@ -149,31 +142,31 @@ if(Lstage == "Recruits"){
   
   
   ## A3
-  load("results_WBScod_m1_A3_both_No_One_noprofile_.RData")
+  load("A3.rds")
   A3 <- as.list(env1$sdr,"Estimate"); A3  <- as.data.frame(A3$eta_density)
-  A3 <- A3[,spawn] #Select only the columns corresponding to spawning period
+  A3 <- A3[,spawn_months] #Select only the columns corresponding to spawning period
   colnames(A3) <- paste("V",1:ncol(A3),sep="") #Rename for readbility
   
-  rm(list=setdiff(ls(), ls(pattern=c("A2|A3|spawn"))))
+  rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|datatot|spawn_month"))))
   
   
   ## A4
-  load("results_WBScod_m1_A4_both_No_One_noprofile_.RData")
+  load("A4.rds")
   A4 <- as.list(env1$sdr,"Estimate"); A4  <- as.data.frame(A4$eta_density)
-  A4 <- A4[,spawn] #Select only the columns corresponding to spawning period
+  A4 <- A4[,spawn_months] #Select only the columns corresponding to spawning period
   colnames(A4) <- paste("V",1:ncol(A4),sep="") #Rename for readbility
   
   
-  rm(list=setdiff(ls(), ls(pattern=c("A2|A3|A4|spawn"))))
+  rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|datatot|spawn_month"))))
   
   
   ## A5
-  load("results_WBScod_m1_A5_both_No_One_noprofile_.RData")
+  load("A5.rds")
   A5 <- as.list(env1$sdr,"Estimate"); A5  <- as.data.frame(A5$eta_density)
-  A5 <- A5[,spawn] #Select only the columns corresponding to spawning period
+  A5 <- A5[,spawn_months] #Select only the columns corresponding to spawning period
   colnames(A5) <- paste("V",1:ncol(A5),sep="") #Rename for readbility
   
-  rm(list=setdiff(ls(), ls(pattern=c("A2|A3|A4|A5|spawn|gr|datatot"))))
+  rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|datatot|spawn_month"))))
   
   
   abulist <- list(A3,A4,A5); names(abulist) <- paste("Age",3:5,sep="")
@@ -181,3 +174,335 @@ if(Lstage == "Recruits"){
   
   
 }
+
+
+# 2.3) Quick 'n dirty plotting
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Just to have a quick look into the predicted
+# abundance fields
+
+
+## 2.3.1) Retrieve base map of Denmark
+data("worldHiresMapEnv")
+DK_coast_poly <- map("worldHires",  fill=TRUE, col="transparent",
+                     plot=FALSE, xlim=c(9,15.5), ylim=c(54.5,58))
+DK_coast_poly$names
+IDs <- sapply(strsplit(DK_coast_poly$names, ":"), function(x) x[1])
+DK_poly <- map2SpatialPolygons(DK_coast_poly, IDs=IDs,
+                               proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0"))
+
+
+## 2.3.2) Recreate monthly time stamps from time series
+tstep <- seq(as.Date("2005-01-01"), as.Date("2019-12-31"), by = "1 month")
+YearMonth <- as.factor(format(as.Date(tstep), "%Y-%m"))
+
+
+## 2.3.3) Go for the plot (just take an arbitrary age group and time period)
+plot(gr,type = "n",xlab="Longitude",ylab="Latitude",las=1,xlim=c(9.25,15.4))
+image(gr, concTransform(abulist[[1]][,15]), #abulist[[1]] = Age0, time step = 15
+      col = tim.colors(99),
+      add=TRUE)
+plot(DK_poly,col=1,add=T)
+title(main = levels(YearMonth)[15])
+mysubtitle = names(abulist)[1]
+
+
+## To produce gif to see the spatio-temporal abundance dynamics
+# saveGIF({
+#   for(age in 1:length(abulist)){
+#     for (time in 1:ncol(abulist[[age]])){
+#       
+#     plot(gr,type = "n",xlab="Longitude",ylab="Latitude",las=1,xlim=c(9.25,15.4))
+#     image(gr, concTransform(abulist[[age]][,time]),
+#           col = tim.colors(99),
+#           #map=quote(map("worldHires",add=TRUE, fill=TRUE, col="grey70")),
+#           #map=quote(plot(DK_poly,add=T,col="grey70")),
+#           add=TRUE)
+#     plot(DK_poly,col=1,add=T)
+#     title(main = levels(YearMonth)[time])
+#     mysubtitle = names(abulist)[age]
+#     mtext(side = 3, line = 0.25, mysubtitle,)    
+#       }
+#    }
+# },
+#   
+# for(age in 1:length(abulist)){
+#   movie.name = paste(names(abulist)[age], ".gif", sep="")
+#   },
+# 
+#   interval = 0.2,
+#   ani.width = 600)
+
+
+
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Section 3: Evaluate abundance hotspot persistency
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+### Step 1) Stack the YearMonth abundance layers of the individual age groups. 
+## For each YearMonth map, we then sum over all abundance values across the spatial
+## grid IDs. This provides a "total juvenile abundance" layer for each YearMonth,
+## and is essentially analogous to the predict first, assemble later approach (Ferrier and Guisan, 2006)
+
+### Step 2) Take the generated YearMonth maps and evaluate the abundance 
+## hotspots following Bartolino's et al. (2011) approach - A frequency 
+## distribution approach to hotspot identification
+
+### Step 3) Evaluate the presistency of the identified hotpost along 
+## the considered time period by using Colloca's et al. (2009) approach - 
+## Identifying fish nurseries using density and presistence areas
+
+
+
+
+# 3.1) Stack YearMonth abundance layers and sum over the values
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## 3.2.1) Transform the abundance to natural scale
+## (The LGNB-SDM model provides output on a log-scale)
+abulist_exp <- lapply(abulist, exp)
+
+
+## 3.2.2) Stack abundance layers
+dfstack <- NULL
+
+for(age in seq_along(YearMonth)){
+  p <- rowSums(sapply(abulist_exp, `[[`, age), na.rm = TRUE)
+  dfstack <- cbind(dfstack, p)
+}
+
+colnames(dfstack) <- colnames(abulist_exp[[1]]) #take an arbitray number among the list
+
+## To see the progress...
+# for(i in 1:ncol(dfstack)){
+# image(gr, dfstack[,i],col=tim.colors(99))
+# }
+
+
+
+
+# 3.2) Identify abundance hotspots 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# For each time step in each age group
+
+# Following Bartolino's approach: the cumulative relative frequency distribution (CRDF)
+# A CRDF curve is approximated by plotting the relative value of a variable z 
+# (e.g., density), against the frequency distrituion of the same variable.
+# The two axes of the plot are given by:
+
+# x=z/zm  ; where z is the variable of interest (here abundance density) and
+# zm is the maximum value that z assumes in the study area.
+
+# y=M(x)/N  ; where M(x) is the number of cases (i.e, points, pixels, areas) a value smaller than x is encountered,
+# and N is the total number of cases
+
+
+
+# We have to define two different functions, one describing the x-axis
+# and the other the y-axis of the CRDF curve.
+# For the x-axis, we basically have to conduct three steps:
+# 1) Order the abundance values of each month from smallest to largest
+# 2)Sort these values from smallest to largest.
+# 3) Apply Bartolino's formula, i.e., we take the abundance value of a given 
+# grid cell of the spatial grid and divide it by the max abundance.
+
+
+
+## 3.2.1) Function to define the X-axis of Bartolino's method
+fxax <- function(x){
+  i  <- order(x)
+  ys <- sort(x)
+  p  <- ys/max(ys)
+  p
+}
+
+
+
+### 3.2.2) Function to define the Y-axis of Bartolino's method
+fyax <- function(x) {
+  s <- 1:length(x)
+  l <- length(x)
+  z <- s/l
+  z
+}
+
+
+
+### 3.2.3) Define the X and Y axes
+
+Xaxis <- apply(dfstack, 2, fxax) #X-axis
+Yaxis <- apply(dfstack, 2, fyax) #Y-axis
+
+
+### Check the progress...
+
+## Plot the CRDF curves individually
+par(mfrow=c(2,2))
+for(i in 1:ncol(Xaxis)){
+  plot(Xaxis[,i],Yaxis[,i],type="s",main=colnames(dfstack)[i])
+}
+
+
+## Plot the CRDF curves of all time steps
+par(mfrow=c(1,1))
+plot(Xaxis[,1],Yaxis[,1],type="s",lwd=2, main=Lstage)
+for(i in 1:ncol(Xaxis)){ #either Xaxis or Yaxis, never mind
+  lines(Xaxis[,i],Yaxis[,i],lwd=2)
+}
+
+
+
+### 3.2.4) Define the abundance treshold
+
+## Here we still apply Bartolino's method, which defines the hotspot treshold as the value
+## delimited by a 45degree tangent in the CRDF curve from the plots above. 
+## Values below the 45o tangent are not considered as an abundance hotspot.
+
+treshold <- list()
+
+for(i in 1:ncol(Xaxis)){ #either Xaxis or Yaxis, never mind
+   plot(Xaxis[,i],Yaxis[,i],type="s",lwd=2, main=colnames(dfstack)[i])
+   abline(0,1,col=3,lwd=2)
+
+   #treshold[[i]] <- locator() #Manual way of defining threshold
+   
+   ## Automatized way to find the tangent (written by Francois Bastardie for NORDFO project)
+   idx_max_b <-  which.max(Yaxis[,i] - Xaxis[,i])  # b=y-x knowing a 45 degree line has slope=1 and line equation is then y=x+b. Therefore, max of b gives the param of the line having the highest intersecting (tangent) point to the cumulated obs curve
+   thres_x   <- Xaxis[idx_max_b, i]
+   thres_y   <- Yaxis[idx_max_b, i]
+   lines(Xaxis[,i], Xaxis[,i]+ (Yaxis[idx_max_b,i] - Xaxis[idx_max_b, i]), col=3)
+   treshold[[i]] <- list(x=thres_x, y=thres_y)
+
+}
+
+
+## Keep only the x-values of the treshod
+tx <- NULL
+for(i in seq_along(treshold)){
+  tx[i] <- treshold[[i]][1] #1 stands for the "x" element; 2 would be the "y" element of the locator function
+  tx <- unlist(tx)
+}
+
+#write.csv(tx,paste(Lstage, "_Abundance_treshold",".csv", sep=""))
+
+
+
+### 3.2.5) Apply the abundance treshold for each time step
+ConcTransform <- function(x) # Based on Bartolino et al. (2011)
+{
+  i <- order(x)
+  ys <- sort(x)
+  p <- ys/max(ys)
+  x[i] <- p
+  x
+  #p
+}
+
+
+# Just to check
+collect_gravity_points <- NULL
+
+for(i in 1:ncol(dfstack)){
+  image(gr, ConcTransform(dfstack[,i]) >= tx[i])
+  title(colnames(dfstack)[i])
+  
+  
+  # line below taken from Francois Bastardie code (NORDFO project)
+  gravity_point <- apply(gr[dfstack[,i] >= tx[i],], 2, mean)
+  points(gravity_point, pch="*", cex=5, col="black")
+
+}
+
+
+
+
+# 3.3) Identify the persistency of the abundance hotspots 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# To evaluate the persistency of the previously identified hotspots,
+# we will adopt the same approach as in Colloca et al. (2009) (actually it is from Fiorentino et al, 2003; see references therein)
+# They identify persistent areas as follows:
+
+# For each time-step, identify the spatial grid ID that was a hotpost.
+# This produces a binary variable: 1 where grid ID is a hotpost, 0 for gird ID that is NOT a hotspot
+
+
+threshold_for_persistency <- 0.8 #Conservative treshold based on STECF recommendations (0.75)
+
+
+
+### 3.3.1) Identify persistent hotspots
+persistency <- NULL
+
+for(i in 1:ncol(dfstack)){
+  p <- ConcTransform(dfstack[,i]) >= tx[i]
+  persistency <- cbind(persistency, p)
+}
+
+colnames(persistency) <- colnames(dfstack)
+
+persistency2 <- as.data.frame(ifelse(persistency=="TRUE",1,0)) #Set TURE/FALSE to 1/0 format
+table(persistency[,1]); table(persistency2[,1]) #Doubble check that everything is ok
+
+
+head(persistency2)
+
+### 3.3.2) Add relevant columns
+persistency2$sum <- rowSums(persistency2)
+persistency2$Index <- persistency2$sum/45
+persistency2$gr_lon <- gr$lon
+persistency2$gr_lat <- gr$lat
+
+
+### 3.3.3) Go for the plot
+image(gr, persistency2$Index >= threshold_for_persistency) #I need to decide what value I use here as a treshold
+plot(gr,add=T)
+plot(DK_poly, col=1, add=T)
+
+
+
+### 3.3.4) Make polygon of the persistent hotpot areas
+# FIXME: Automatize steps below; for now they are done manually based on
+# the plot above.
+
+# NOTE: Only run the line below when running the script for the first time.
+# The polygons are already stored in the ~/Data/Hotspot/ folder
+
+
+# if(Lstage == "Recruits"){
+#   
+#   box1 <- drawPoly() #draws polygon in the Kattegat
+#   box2 <- drawPoly() #draws polygon in the upper part of Bornholm
+#   box3 <- drawPoly() #draws polygon in the lower part of Bornholm
+#   
+#   poly_box1 <- as(box1, "SpatialPolygonsDataFrame" )
+#   poly_box2 <- as(box2, "SpatialPolygonsDataFrame" )
+#   poly_box3 <- as(box3, "SpatialPolygonsDataFrame" )
+#   
+#   setwd("~/Data/Hotspots/Recruits")
+#   writeOGR(poly_box1, dsn = '.', layer = 'Recruits_box1', driver = "ESRI Shapefile")
+#   writeOGR(poly_box2, dsn = '.', layer = 'Recruits_box2', driver = "ESRI Shapefile")
+#   writeOGR(poly_box3, dsn = '.', layer = 'Recruits_box3', driver = "ESRI Shapefile")
+#   
+# 
+# } else if(Lstage == "Spawners"){
+#   
+#   box1 <- drawPoly() #draws polygon in the Kattegat - However, this is already a closure area. so leave it out
+#   box2 <- drawPoly() #draws polygon in the WBS, close to Bornholm
+#   
+#   
+#   poly_box1 <- as(box1, "SpatialPolygonsDataFrame" )
+#   poly_box2 <- as(box2, "SpatialPolygonsDataFrame" )
+#   
+#   setwd("~/Data/Hotspots/Spawners")
+#   writeOGR(poly_box1, dsn = '.', layer = 'Spawners_box1', driver = "ESRI Shapefile")
+#   writeOGR(poly_box2, dsn = '.', layer = 'Spawners_box2', driver = "ESRI Shapefile")
+# }
+
+
+
+
