@@ -60,6 +60,8 @@ library(pals)
 library(tidyr)
 library(animation)
 library(fishualize)
+library(tidyverse)
+library(gridExtra)
 
 
 
@@ -504,5 +506,223 @@ plot(DK_poly, col=1, add=T)
 # }
 
 
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
 
 
+
+##################################
+#                                #
+#   Plotting results for paper   #
+#                                #
+##################################
+
+# Done with ggplot2.
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 1) Plot CRDF curves of all time steps in one plot 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+# Do some data wraggling
+if(Lstage == "Recruits"){
+  
+Xaxis_long <- tidyr::gather(as.data.frame(Xaxis), TimeStep, measurement, V1:V180, factor_key=TRUE)
+Yaxis_long <- tidyr::gather(as.data.frame(Yaxis), TimeStep, measurement, V1:V180, factor_key=TRUE)
+
+
+Y2005 <- c(paste("V",1:12,sep="")) 
+Y2006 <- c(paste("V",13:24,sep="")) 
+Y2007 <- c(paste("V",25:36,sep="")) 
+Y2008 <- c(paste("V",37:48,sep="")) 
+Y2009 <- c(paste("V",49:60,sep="")) 
+Y2010 <- c(paste("V",61:72,sep="")) 
+Y2011 <- c(paste("V",73:84,sep="")) 
+Y2012 <- c(paste("V",85:96,sep="")) 
+Y2013 <- c(paste("V",97:108,sep="")) 
+Y2014 <- c(paste("V",109:120,sep=""))  
+Y2015 <- c(paste("V",121:132,sep=""))  
+Y2016 <- c(paste("V",133:144,sep=""))  
+Y2017 <- c(paste("V",145:156,sep=""))  
+Y2018 <- c(paste("V",157:168,sep=""))  
+Y2019 <- c(paste("V",169:180,sep=""))  
+
+
+
+
+} else if (Lstage == "Spawners"){
+  
+Xaxis_long <- tidyr::gather(as.data.frame(Xaxis), TimeStep, measurement, V1:V45, factor_key=TRUE)
+Yaxis_long <- tidyr::gather(as.data.frame(Yaxis), TimeStep, measurement, V1:V45, factor_key=TRUE)
+
+Y2005 <- c(paste("V",1:3,sep="")) 
+Y2006 <- c(paste("V",4:6,sep="")) 
+Y2007 <- c(paste("V",7:9,sep="")) 
+Y2008 <- c(paste("V",10:12,sep="")) 
+Y2009 <- c(paste("V",13:15,sep="")) 
+Y2010 <- c(paste("V",16:18,sep="")) 
+Y2011 <- c(paste("V",19:21,sep="")) 
+Y2012 <- c(paste("V",22:24,sep="")) 
+Y2013 <- c(paste("V",25:27,sep="")) 
+Y2014 <- c(paste("V",28:30,sep=""))  
+Y2015 <- c(paste("V",31:33,sep=""))  
+Y2016 <- c(paste("V",34:36,sep=""))  
+Y2017 <- c(paste("V",37:39,sep=""))  
+Y2018 <- c(paste("V",40:42,sep=""))  
+Y2019 <- c(paste("V",43:45,sep=""))  
+
+}
+
+  
+
+df_long <- data.frame(TimeStep=Xaxis_long$TimeStep, Xmeasure = Xaxis_long$measurement,
+                      Ymeasure = Yaxis_long$measurement)
+
+
+
+df_long$Year <- ifelse(df_long$TimeStep %in% Y2005,"2005",
+                       ifelse(df_long$TimeStep %in% Y2006,"2006",
+                              ifelse(df_long$TimeStep %in% Y2007,"2007", 
+                                     ifelse(df_long$TimeStep %in% Y2008,"2008", 
+                                            ifelse(df_long$TimeStep %in% Y2009,"2009", 
+                                                   ifelse(df_long$TimeStep %in% Y2010,"2010", 
+                                                          ifelse(df_long$TimeStep %in% Y2011,"2011", 
+                                                                 ifelse(df_long$TimeStep %in% Y2012,"2012", 
+                                                                        ifelse(df_long$TimeStep %in% Y2013,"2013", 
+                                                                               ifelse(df_long$TimeStep %in% Y2014,"2014", 
+                                                                                      ifelse(df_long$TimeStep %in% Y2015,"2015", 
+                                                                                             ifelse(df_long$TimeStep %in% Y2016,"2016",
+                                                                                                    ifelse(df_long$TimeStep %in% Y2017,"2017",
+                                                                                                           ifelse(df_long$TimeStep %in% Y2018,"2018",
+                                                                                                                  "2019"))))))))))))))
+
+
+
+pal <- fish(15, option = "Epinephelus_lanceolatus",end=0.8) #fish_palettes() to see other palettes
+
+
+
+p1 <- ggplot(data=df_long, aes(x=Xmeasure, y=Ymeasure, col=Year)) +
+  geom_line(size=1) +
+  theme_bw()+
+  scale_colour_manual(values=rev(pal)) +
+  labs(x = "Relative density", y="Cumulative frequency") +
+  theme(panel.border = element_blank(),
+        axis.line.x = element_line(size = 1, linetype = "solid", colour = "black"),
+        axis.line.y = element_line(size = 1, linetype = "solid", colour = "black"),
+        
+        plot.title = element_text(hjust = 0.5, margin=margin(b=15),size=18,face="bold"),
+        
+        axis.text.x = element_text(face="bold",size=16),
+        axis.text.y = element_text(face="bold",size=16),
+        axis.title.y = element_text(margin=margin(t=0,r=20,b=0,l=0),size=18,face="bold"),
+        axis.title.x = element_text(margin=margin(t=20,r=0,b=0,l=0),size=18,face="bold"),
+        #axis.line = element_line(size=1, colour = "black"),
+        
+        legend.position = "right",
+        legend.title = element_text(size = 16,face="bold"),
+        legend.text = element_text(size = 15),
+        legend.key.height  = unit(0.5,"cm"),
+        
+        
+        plot.margin = unit(c(1,1,1,1),"cm"))
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 2) Boxplot of the selected treshold values
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+dtx <- data.frame(tvalues=tx)
+
+p2 <- ggplot(dtx, aes(x= "", y=tvalues)) +
+  geom_boxplot(notch=T,color="black", fill="gray70", alpha=0.3,lwd=1) +
+  # geom_violin(trim=F,color="black", fill="gray70", alpha=0.3,lwd=1) +
+  # stat_summary(fun.data=mean_sdl, size=1,
+  #              geom="pointrange", color="red")+
+  theme_bw() +
+  #geom_jitter(width=0.1,alpha=0.2) +
+  labs(y="CRDF tresholds",x="") +
+  scale_fill_manual(values=c("#999999")) +
+  theme(panel.border = element_blank(),
+        axis.line.x = element_line(size = 1, linetype = "solid", colour = "black"),
+        axis.line.y = element_line(size = 1, linetype = "solid", colour = "black"),
+        
+        plot.title = element_text(hjust = 0.5, margin=margin(b=15),size=18,face="bold"),
+        
+        axis.text.x = element_text(face="bold",size=16),
+        axis.text.y = element_text(face="bold",size=16),
+        axis.title.y = element_text(margin=margin(t=0,r=20,b=0,l=0),size=18,face="bold"),
+        axis.title.x = element_text(margin=margin(t=20,r=0,b=0,l=0),size=18,face="bold"),
+        #axis.line = element_line(size=1, colour = "black"),
+        
+        legend.position = "right",
+        legend.title = element_text(size = 16,face="bold"),
+        legend.text = element_text(size = 15),
+        legend.key.height  = unit(0.5,"cm"),
+        
+        
+        plot.margin = unit(c(1,1,1,1),"cm"))
+
+
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 3) Plot the density distribution and show the selected area based on the treshold value
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+dens <- density(Xaxis[,22]) #Select an arbitray example
+trs <- tx[22] #Select number according to the above one
+
+
+data <- tibble(x = dens$x, y = dens$y) %>% 
+  mutate(variable = case_when(
+    (x >= trs & x <= 1) ~ "On", 
+    (x >= 0 & x <= trs) ~ "Off",
+    TRUE ~ NA_character_))
+
+p3 <- ggplot(data, aes(x, y)) + geom_line() +
+  geom_area(data = filter(data, variable == 'On'), fill = pal[3],alpha=0.3) + 
+  #geom_area(data = filter(data, variable == 'Off'), fill = 'light blue') +
+  geom_line(size=1) +
+  theme_pubclean() +
+  #labs(x = "Abundance", y="Density", title="October - 2019") +
+  labs(x = "Abundance", y="Density") +
+  scale_x_continuous(limits=c(min(dens$x),max(dens$x)),breaks=c(0,0.2,0.4,0.6,0.8,1)) +
+  theme(panel.border = element_blank(),
+        axis.line.x = element_line(size = 1, linetype = "solid", colour = "black"),
+        axis.line.y = element_line(size = 1, linetype = "solid", colour = "black"),
+        
+        plot.title = element_text(hjust = 0.5, margin=margin(b=15),size=18,face="bold"),
+        
+        axis.text.x = element_text(face="bold",size=16),
+        axis.text.y = element_text(face="bold",size=16),
+        axis.title.y = element_text(margin=margin(t=0,r=20,b=0,l=0),size=18,face="bold"),
+        axis.title.x = element_text(margin=margin(t=20,r=0,b=0,l=0),size=18,face="bold"),
+        #axis.line = element_line(size=1, colour = "black"),
+        
+        legend.position = "right",
+        legend.title = element_text(size = 16,face="bold"),
+        legend.text = element_text(size = 15),
+        legend.key.height  = unit(0.5,"cm"),
+        
+        
+        plot.margin = unit(c(1,1,1,1),"cm"))
+
+
+
+
+
+
+
+#### All plot in one row
+
+
+finalplot <- grid.arrange(p1,p2,p3,                 
+                          ncol = 3, nrow =1)
+
+
+# 
+# ggsave("~/Figures/CRDFs.png",
+#        finalplot, width = 45, height = 15, units = "cm")
