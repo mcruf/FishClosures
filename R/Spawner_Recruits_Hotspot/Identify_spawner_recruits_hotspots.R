@@ -33,7 +33,7 @@
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Section 1: Set default inputs & R libraries
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 # 1.1) Choose life stage for which the abundance hotspot should be identified; 
@@ -96,19 +96,19 @@ if(Lstage == "Juveniles"){
 
   
   ## A0
-  load("A0.rds")
+  load("A0.RData")
   A0 <- as.list(env1$sdr,"Estimate"); A0  <- as.data.frame(A0$eta_density)
   rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|datatot|spawn_month"))))
   
   
   ## A1
-  load("A1.rds")
+  load("A1.RData")
   A1 <- as.list(env1$sdr,"Estimate"); A1  <- as.data.frame(A1$eta_density)
   rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|datatot|spawn_month"))))
   
   
   ## A2
-  load("A2.rds")
+  load("A2.RData")
   A2 <- as.list(env1$sdr,"Estimate"); A2  <- as.data.frame(A2$eta_density)
   rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|datatot|spawn_month"))))
   
@@ -148,7 +148,7 @@ if(Lstage == "Juveniles"){
   
   
   ## A3
-  load("A3.rds")
+  load("A3.RData")
   A3 <- as.list(env1$sdr,"Estimate"); A3  <- as.data.frame(A3$eta_density)
   A3 <- A3[,spawn_months] #Select only the columns corresponding to spawning period
   colnames(A3) <- paste("V",1:ncol(A3),sep="") #Rename for readbility
@@ -157,7 +157,7 @@ if(Lstage == "Juveniles"){
   
   
   ## A4
-  load("A4.rds")
+  load("A4.RData")
   A4 <- as.list(env1$sdr,"Estimate"); A4  <- as.data.frame(A4$eta_density)
   A4 <- A4[,spawn_months] #Select only the columns corresponding to spawning period
   colnames(A4) <- paste("V",1:ncol(A4),sep="") #Rename for readbility
@@ -167,7 +167,7 @@ if(Lstage == "Juveniles"){
   
   
   ## A5
-  load("A5.rds")
+  load("A5.RData")
   A5 <- as.list(env1$sdr,"Estimate"); A5  <- as.data.frame(A5$eta_density)
   A5 <- A5[,spawn_months] #Select only the columns corresponding to spawning period
   colnames(A5) <- paste("V",1:ncol(A5),sep="") #Rename for readbility
