@@ -1,6 +1,6 @@
 ##########################################################################################
 #                                                                                        #
-##                  Identify abundance hotspots of juveniles (recruits)                 ##
+##                  Identify abundance hotspots of juveniles & spawners                 ##
 ##                                    (Rufener et al.)                                  ##
 #                                                                                        #
 ##########################################################################################
@@ -20,32 +20,33 @@
 # To do so, the present script follows the following steps:
 
 
-
-
-
-
-#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
-
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Section 1: Set default inputs
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Lstage <- c("Juveniles","Spawners")[1] #Set appropriate life stage for which the abundance hotspot should be identified; default is "Recruits"
-
+# The following script is divided into three sections:
+# 1) Set default inputs & R libraries
+# 2) Load data files
+# 3) Evaluate abundance hotspot persistency
+# * At the end of section 3, 
 
 
 
 #><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Section 1: Set default inputs & R libraries
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Section 2: R packages & Load data files 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# 1.1) Choose life stage for which the abundance hotspot should be identified; 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Juveniles: A0-A2
+## Spawners: A3-A5+
 
 
-# 2.1) Load R libraries
+Lstage <- c("Juveniles","Spawners")[1] # Default = Juveniles
+
+
+
+# 1.2) Load R libraries
 #~~~~~~~~~~~~~~~~~~~~~~~~
 library(ggplot2)
 library(ggpubr)
@@ -66,17 +67,20 @@ library(gridExtra)
 
 
 
-# 2.2) Load results from LGNB-SDM
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
 
-## Recruits: A0-A2
-## Spawners: A3-A5+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Section 2: Load data files 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 # Note: the LGNB-SDM output provides a dataframe where each column is a time-period.
 # Since we ran the model from 2005-2019 on a monthly basis, this means that we will
 # have 180 columns (V1-V180).
 
-# To identify recruits hotpspots, we will have to take all the months into consideration, in opposit to
+# To identify juvenile hotpspots, we will have to take all the months into consideration, in opposit to
 # the spawner hotspot, as for the latter we know upfront the monhts corresponding to spawning (JAN-MAR).
 # Whereas for the recruits we will stack the abundance layers from all months of the time series, for 
 # spawners we will only stack the abundance layers corresponding to the first three months of each year.
@@ -86,8 +90,8 @@ library(gridExtra)
 if(Lstage == "Juveniles"){
   
   ## Set WD where the recruits results are stored
-  #setwd("~/Data/Hotspots/Recruits/")
-  setwd("C:/Users/mruf/Documents/Fish_Closures/Data/Hotspots/Recruits/")
+  setwd("~/Data/Hotspots/Recruits/")
+  #setwd("C:/Users/mruf/Documents/Fish_Closures/Data/Hotspots/Recruits/")
   
 
   
@@ -109,7 +113,7 @@ if(Lstage == "Juveniles"){
   rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|datatot|spawn_month"))))
   
   
-  
+  ## Move all results into a list
   abulist <- list(A0,A1,A2); names(abulist) <- paste("Age",0:2,sep="")
   
   
@@ -119,8 +123,8 @@ if(Lstage == "Juveniles"){
   
   
   ## Set WD where the recruits results are stored
-  #setwd("~/Data/Hotspots/Spawners/")
-  setwd("C:/Users/mruf/Documents/Fish_Closures/Data/Hotspots/Spawners/")
+  setwd("~/Data/Hotspots/Spawners/")
+  #setwd("C:/Users/mruf/Documents/Fish_Closures/Data/Hotspots/Spawners/")
   
   
   
@@ -171,6 +175,7 @@ if(Lstage == "Juveniles"){
   rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|datatot|spawn_month"))))
   
   
+  ## Move all results into a list
   abulist <- list(A3,A4,A5); names(abulist) <- paste("Age",3:5,sep="")
   
   
@@ -178,13 +183,13 @@ if(Lstage == "Juveniles"){
 }
 
 
-# 2.3) Quick 'n dirty plotting
+# 2.1) Quick 'n dirty plotting
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Just to have a quick look into the predicted
 # abundance fields
 
 
-## 2.3.1) Retrieve base map of Denmark
+## 2.1.1) Retrieve base map of Denmark
 data("worldHiresMapEnv")
 DK_coast_poly <- map("worldHires",  fill=TRUE, col="transparent",
                      plot=FALSE, xlim=c(9,15.5), ylim=c(54.5,58))
@@ -194,12 +199,12 @@ DK_poly <- map2SpatialPolygons(DK_coast_poly, IDs=IDs,
                                proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0"))
 
 
-## 2.3.2) Recreate monthly time stamps from time series
+## 2.1.2) Recreate monthly time stamps from time series
 tstep <- seq(as.Date("2005-01-01"), as.Date("2019-12-31"), by = "1 month")
 YearMonth <- as.factor(format(as.Date(tstep), "%Y-%m"))
 
 
-## 2.3.3) Go for the plot (just take an arbitrary age group and time period)
+## 2.1.3) Go for the plot (just take an arbitrary age group and time period)
 plot(gr,type = "n",xlab="Longitude",ylab="Latitude",las=1,xlim=c(9.25,15.4))
 image(gr, concTransform(abulist[[1]][,15]), #abulist[[1]] = Age0, time step = 15
       col = tim.colors(99),
