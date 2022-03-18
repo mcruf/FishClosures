@@ -1,11 +1,48 @@
-###################################################################################
-#                                                                                 #
-#                    Coupling spatio-temporal model to DISPLACE                   #
-#                             Part 2: Coupling results                            #
-#                                                                                 #
-###################################################################################
+##########################################################################################
+#                                                                                        #
+##                  Plot of the forward predictions of the abundance field              ##
+##                                    (Rufener et al.)                                  ##
+#                                                                                        #
+##########################################################################################
+
+# Last update: March 2022
+
+# Code written and mantained by Marie-Christine Rufener
+# Contact < macrufener@gmail.com > for any query or to report code issues.
 
 
+# This code is part of the DISPLACE-LGNB coupling routine.
+# Here, we use the outputs of the LGNB-SDM model that was applied sepparately on
+# each size group (refer to LGNB_DISPLACE_coupling_part01.R) to predict the abundance
+# fields in t+1 (forward prediction).
+
+
+#! Note that this script uses an extended version of the LGNB-SDM outputs.
+#! More specifically, it includes the objective function of the model, which
+#! will be used for the forward predictions. The resulting file is considerably larger
+#! then the simplified output version and does not fit into the GitHub's repository.
+#! Please request the full outputs on the above highlighted contact.
+
+
+
+# The following script is divided into the following consecutive sections:
+
+
+# SECTION 1: Predict abundance field one time-step ahead (core section for DISPLACE coupling)
+# SECTION 2: Exract abundances for DISPLACE grid
+# SECTION 3: Output for DISPLACE
+
+
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Load R libraries & Functions #
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+
+# Libraries
+#~~~~~~~~~~~
 library(TMB)
 library(gridConstruct)
 library(Matrix)
@@ -16,24 +53,21 @@ library(pals)
 library(maptools)
 library(ggplot2)
 library(maptools)
-
-#library(gridConstruct)
 library(ggsn)
 library(mapdata)
 library(fields)
 library(rgdal)
 
-# SECTION 1: Predict abundance field one time-step ahead (core section for DISPLACE coupling)
-# SECTION 2: Exract abundances for DISPLACE grid
-# SECTION 3: Output for DISPLACE
 
 
+# Multivariate normal distribution simulation function 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Based on precision rather than variance parameter
 
-# Multivariate normal distribution simulation function (based on precision rather variance)
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # @ mu = mean of the abundance field
 # @ prec = precision of the spatio-temporal covariance matrix
 # @ n.sims = number of simulations
+
 rmvnorm_prec <- function(mu, prec, n.sims) {
   z <- matrix(rnorm(length(mu) * n.sims), ncol=n.sims)
   L <- Cholesky(prec, super=TRUE)
@@ -45,16 +79,14 @@ rmvnorm_prec <- function(mu, prec, n.sims) {
 
 
 
-
-
-#><><><><><><><>><><><>><><><>><><><>><><><>><><><>><><><>><><><>><><><>><><><>><><><>><>
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
 ########################                SECTION 1                ########################
-#><><><><><><><>><><><>><><><>><><><>><><><>><><><>><><><>><><><>><><><>><><><>><><><>><>
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
 
 
 # Load results
 #~~~~~~~~~~~~~~~~
-load("D:/PhD/Project III/Results/Size_Distribution_DISPLACE_input/WBScod_all_SizeGroups.RData") #fullres is a list of lists, where each individual list stores the results of a particular size-group
+load("E:/PhD/Project III/Results/Size_Distribution_DISPLACE_input/WBScod_all_SizeGroups.RData") #fullres is a list of lists, where each individual list stores the results of a particular size-group
 # names(fullres) #names of the lists(related to the DISPLACE size-groups)
 # names(fullres[[1]]) #names of the objects present in each list
 # image(fullres[[1]]$gr,fullres[[1]]$abundance[,1]) # To see an example of the estimated abundance fields
@@ -126,8 +158,8 @@ for(i in seq_along(abundances)){
 
 names(Allspred) <- names(fullres)
 
-# load("D:/PhD/Project III/Results/Size_Distribution_DISPLACE_input/Crude_results_per_SizeGroup/results_WBScod_size_m1_S2_both_No_One.RData") 
-# image(fullres[[5]]$gr, Allspred[[5]][,1],col=tim.colors(99)) #plotting example
+# To see the progress....
+image(fullres[[5]]$gr, Allspred[[5]][,1],col=tim.colors(99)) 
 
 
 
@@ -139,9 +171,9 @@ names(Allspred) <- names(fullres)
 
 
 
-#><><><><><><><>><><><>><><><>><><><>><><><>><><><>><><><>><><><>><><><>><><><>><><><>><>
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
 ########################                SECTION 2                ########################
-#><><><><><><><>><><><>><><><>><><><>><><><>><><><>><><><>><><><>><><><>><><><>><><><>><>
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
 
 
 
@@ -232,8 +264,8 @@ Allspredw$Quarter <- ifelse(Allspredw$Quarter=="1","Q1",
 
 ## For the abundance fields in time t
 abundancesw$Quarter <- ifelse(abundancesw$Quarter=="1","Q1",
-                            ifelse(abundancesw$Quarter=="2","Q2",
-                                   ifelse(abundancesw$Quarter=="3","Q3","Q4")))
+                              ifelse(abundancesw$Quarter=="2","Q2",
+                                     ifelse(abundancesw$Quarter=="3","Q3","Q4")))
 
 
 
@@ -254,7 +286,8 @@ for(i in 1:length(dflist_pred)){
 }
 names(abufields_pred) <- names(dflist_pred) #name new list accordingly
 
-#image(abufields_pred[[47]],col=tim.colors(99)) #out of 52; 47 is SG13-Q4
+# To see the progress...
+image(abufields_pred[[47]],col=tim.colors(99)) #out of 52; 47 is SG13-Q4
 
 
 
@@ -271,12 +304,8 @@ for(i in 1:length(dflist_current)){
 }
 names(abufields_current) <- names(abufields_current) #name new list accordingly
 
+# To see the progress...
 image(abufields_current[[47]],col=tim.colors(99)) #out of 52; 47 is SG13-Q4
-
-
-
-
-
 
 
 
@@ -304,7 +333,7 @@ plot(DK_poly,add=T, col="gray70")
 
 
 
-png(file="C:/Users/mruf/OneDrive - Danmarks Tekniske Universitet/PhD/Manuscript_03/Figures/Supplementary_material/Coupling_abundance_maps/predicted_current_abundances.png",
+png(file="~/predicted_current_abundances.png",
     width=3300, height=4600, res=300)
 
 
@@ -349,3 +378,4 @@ box(lwd=2)
 
 
 dev.off()
+
