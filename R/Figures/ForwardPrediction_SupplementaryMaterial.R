@@ -17,14 +17,6 @@
 # fields in t+1 (forward prediction).
 
 
-#! Note that this script uses an extended version of the LGNB-SDM outputs.
-#! More specifically, it includes the objective function of the model, which
-#! will be used for the forward predictions. The resulting file is considerably larger
-#! then the simplified output version and does not fit into the GitHub's repository.
-#! Please request the full outputs on the above highlighted contact.
-
-
-
 # The following script is divided into the following consecutive sections:
 
 
@@ -86,7 +78,7 @@ rmvnorm_prec <- function(mu, prec, n.sims) {
 
 # Load results
 #~~~~~~~~~~~~~~~~
-load("E:/PhD/Project III/Results/Size_Distribution_DISPLACE_input/WBScod_all_SizeGroups.RData") #fullres is a list of lists, where each individual list stores the results of a particular size-group
+load("~/Data/LGNB-DISPLACE/WBScod_all_SizeGroups.RData") #fullres is a list of lists, where each individual list stores the results of a particular size-group
 # names(fullres) #names of the lists(related to the DISPLACE size-groups)
 # names(fullres[[1]]) #names of the objects present in each list
 # image(fullres[[1]]$gr,fullres[[1]]$abundance[,1]) # To see an example of the estimated abundance fields
