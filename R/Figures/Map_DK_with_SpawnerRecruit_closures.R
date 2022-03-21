@@ -1,4 +1,29 @@
+##########################################################################################
+#                                                                                        #
+##                         Mapping the juvenile and spawner closures                    ##
+##                                    (Rufener et al.)                                  ##
+#                                                                                        #
+##########################################################################################
 
+
+# Last update: March 2022
+
+# Code written and mantained by Marie-Christine Rufener
+# Contact < macrufener@gmail.com > for any query or to report code issues.
+
+
+# The following script returns a plot in which the juvenile and spawner
+# closures are exposed in the study area (Western Baltic Sea).
+# These closures were based on the persistent hotspot areas, that were
+# identified in the Identify_spawner_recruits_hotspots.R script.
+
+
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
+
+
+#~~~~~~~~~~~~~~~~~~~~~~
+# 1) Load R libraries
+#~~~~~~~~~~~~~~~~~~~~~~
 library(ggplot2)
 library(ggpatern)
 library(ggpubr)
@@ -7,64 +32,51 @@ library(rgdal)
 library(maptools)
 library(ggpattern)
 library(marmap)
+library(oce)
+library(ocedata)
+library(rgeos)
+library(ggspatial)
+library(ggsn)
 
-UTMzone  <- 32
 
 
-# Plot study area with hotspot polygons
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 2) Plot study area with hotspot polygons
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+UTMzone  <- 32 # Define the UTM zone
+
+
+
+# 2.1) Import shapefile of the study area
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# DK shapefile
-#~~~~~~~~~~~~~~~~
-
-setwd("C:/Users/mruf/OneDrive - Danmarks Tekniske Universitet/PhD/Manuscript_03/Data/Shapefile/")
+setwd("~/Data/Shapefile/Denmark")
 DK <- readOGR(".", "DK") 
 
 crs(DK) <- "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs" 
 
 
-#run this line if plotting map only
-#DK <- spTransform(DK, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 
-
-##Do not run the line below if plotting the map (I need degrees, not UTM units for the map)
-#DK <- spTransform(DK, CRS(paste("+proj=utm +zone=",UTMzone," +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0", sep='')))    # convert to UTM
-
-
-
-# Import ICES rect shapefile
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-setwd("C:/Users/mruf/OneDrive - Danmarks Tekniske Universitet/PhD/GIS/ICES_area/")
+# 2.2) Import ICES area shapefiles
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+setwd("~/Data/Shapefile/ICES")
 ICES <- readOGR(dsn = ".", layer = "ICESareas_WB_and_Kattegat")
 
 crs(ICES) <- "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs" 
 
 
-#ICES <- spTransform(ICES, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 
 
-# Depth contour shapefile
-#~~~~~~~~~~~~~~~~~~~~~~~~~~
-# setwd("C:/Users/mruf/OneDrive - Danmarks Tekniske Universitet/PhD/Manuscript_03/Data/Shapefile/Bathymetry/")
-# depth <- readOGR(".", "Depth contours") 
-# 
-# 
-# depth <- readShapePoly(file.path('C:','Users','mruf','OneDrive - Danmarks Tekniske Universitet','PhD',
-#                               'Manuscript_03','Data','Shapefile','Bathymetry'), 
-#                     proj4string=CRS("+proj=longlat +ellps=WGS84"))
-# 
-# depth <- spTransform(depth, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+# 2.3) Get bathymetry raster
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# To make the depth contour layers on the map
 
-##Do not run the line below if plotting the map (I need degrees, not UTM units for the map)
-#depth <- spTransform(depth, CRS(paste("+proj=utm +zone=",UTMzone," +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0", sep='')))    # convert to UTM
-
-
-# get bathymetry data
-b = getNOAA.bathy(lon1 = 9.5, lon2 = 15.5, lat1 = 53.7, lat2 = 56.5, 
+## 2.3.1) Get NOAA bathymetry for the study region
+data("coastlineWorldFine")
+b <- getNOAA.bathy(lon1 = 9.5, lon2 = 15.5, lat1 = 53.7, lat2 = 56.5, 
                   resolution = 1)
-## Querying NOAA database ...
-## This may take seconds to minutes, depending on grid size
-## Building bathy matrix ...
 
 # The following map with oce does not use a projection, which basically means
 # that all plotting occurs as if the world were completely flat. Plotting in this 
@@ -74,11 +86,9 @@ b = getNOAA.bathy(lon1 = 9.5, lon2 = 15.5, lat1 = 53.7, lat2 = 56.5,
 # and in circumstances where exact distances aren't crticially important.
 
 
-library(oce)
-library(ocedata)
-data("coastlineWorldFine")
 
-# convert bathymetry
+
+# 2.3.2) Convert bathymetry layer
 bathyLon = as.numeric(rownames(b))
 bathyLat = as.numeric(colnames(b))
 bathyZ = as.numeric(b)
@@ -86,51 +96,33 @@ dim(bathyZ) = dim(b)
 
 
 
-
-
-
-
-# Spawners shapefiles
-#~~~~~~~~~~~~~~~~~~~~~~
-setwd("C:/Users/mruf/OneDrive - Danmarks Tekniske Universitet/PhD/Manuscript_03/Data/Shapefile/Hotspots/Spawners/")
+# 2.4) Import spawners closure shapefiles
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+setwd("~/Data/Shapefile/Hotspots/Spawners/")
 sbox1 <- readOGR(".", "Spawner_box1")
 sbox2 <- readOGR(".", "Spawner_box2")
 
-#proj4string(sbox1) <- CRS("+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
-#proj4string(sbox2) <- CRS("+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs")
 
 crs(sbox1) <- "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs" 
 crs(sbox2) <- "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs" 
-
-
-
-
-
-# sbox1 <- readShapePoly("C:/Users/mruf/OneDrive - Danmarks Tekniske Universitet/PhD/Manuscript_03/Data/Shapefile/Hotspots/Spawners/Spawner_box1", 
-#                     proj4string=CRS("+proj=longlat +ellps=WGS84"))
-# sbox2 <- readShapePoly("C:/Users/mruf/OneDrive - Danmarks Tekniske Universitet/PhD/Manuscript_03/Data/Shapefile/Hotspots/Spawners/Spawner_box2", 
-#                        proj4string=CRS("+proj=longlat +ellps=WGS84"))
 
 
 # #Run these lines if only area of polygon is to be calculated
 # sbox1 <- spTransform(sbox1, CRS(paste("+proj=utm +zone=",UTMzone," +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0", sep='')))    # convert to UTM
 # sbox2 <- spTransform(sbox2, CRS(paste("+proj=utm +zone=",UTMzone," +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0", sep='')))    # convert to UTM
 
-
 # #Calculate the area
 # rgeos::gArea(sbox1)
 # rgeos::gArea(sbox2)
-
 
 # sbox1 <- spTransform(sbox1, CRS(paste("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0", sep='')))    # convert to UTM
 # sbox2 <- spTransform(sbox2, CRS(paste("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0", sep='')))    # convert to UTM
 
 
 
-
-# Recruits shapefiles
-#~~~~~~~~~~~~~~~~~~~~~~
-setwd("C:/Users/mruf/OneDrive - Danmarks Tekniske Universitet/PhD/Manuscript_03/Data/Shapefile/Hotspots/Recruits/")
+# 2.5) Import Juvenile closure shapefiles
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+setwd("~/Data/Shapefile/Hotspots/Recruits")
 rbox1 <- readOGR(".", "Recruits_box1")
 rbox2 <- readOGR(".", "Recruits_box2")
 rbox3 <- readOGR(".", "Recruits_box3")
@@ -140,27 +132,14 @@ crs(rbox2) <- "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=G
 crs(rbox3) <- "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs" 
 
 
-
-# rbox1 <- readShapePoly("C:/Users/mruf/OneDrive - Danmarks Tekniske Universitet/PhD/Manuscript_03/Data/Shapefile/Hotspots/Recruits/Recruits_box1", 
-#                        proj4string=CRS("+proj=longlat +ellps=WGS84"))
-# 
-# rbox2 <- readShapePoly("C:/Users/mruf/OneDrive - Danmarks Tekniske Universitet/PhD/Manuscript_03/Data/Shapefile/Hotspots/Recruits/Recruits_box2", 
-#                        proj4string=CRS("+proj=longlat +ellps=WGS84"))
-# 
-# rbox3 <- readShapePoly("C:/Users/mruf/OneDrive - Danmarks Tekniske Universitet/PhD/Manuscript_03/Data/Shapefile/Hotspots/Recruits/Recruits_box3", 
-#                        proj4string=CRS("+proj=longlat +ellps=WGS84"))
-
-# # #Run these lines if only area of polygon is to be calculated
+## Run these lines if only area of polygon is to be calculated
 # rbox1 <- spTransform(rbox1, CRS(paste("+proj=utm +zone=",UTMzone," +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0", sep='')))    # convert to UTM
 # rbox2 <- spTransform(rbox2, CRS(paste("+proj=utm +zone=",UTMzone," +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0", sep='')))    # convert to UTM
 # rbox3 <- spTransform(rbox3, CRS(paste("+proj=utm +zone=",UTMzone," +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0", sep='')))    # convert to UTM
-# 
+
 # rgeos::gArea(rbox1)
 # rgeos::gArea(rbox2)
 # rgeos::gArea(rbox3)
-
-
-
 
 # rbox1 <- spTransform(rbox1, CRS(paste("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0", sep='')))    # convert to UTM
 # rbox2 <- spTransform(rbox2, CRS(paste("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0", sep='')))    # convert to UTM
@@ -169,18 +148,16 @@ crs(rbox3) <- "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=G
 
 
 
-# Intersection between spawners & recruits
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-library(rgeos)
+# 2.6) Get intersection between spawners & juvenile closures
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# There was an intersection area close to Bornholm
+
 srbox <- intersect(rbox2, sbox2)
 rgeos::gArea(srbox)
 
 poly_SRbox <- as(srbox, "SpatialPolygonsDataFrame" )
 
-
 ## Save polygons
-# setwd("D:/PhD/Project III/Results/Recruits_HotSpot/YearMonth")
-# setwd("D:/PhD/Project III/Results/Spawning_HotSpots/YearMonth/")
 # writeOGR(poly_SRbox, dsn = '.', layer = 'SpawnerRecruits_intersection_box', driver = "ESRI Shapefile")
 
 
@@ -196,48 +173,14 @@ gArea(srbox); raster::area(srbox)
 
 
 
-#~~~~~~~~~~~~~~~~~
-# Go for the plot
-#~~~~~~~~~~~~~~~~~
-
-
-## Do it in normal plot
-#~~~~~~~~~~~~~~~~~~~~~~~~~~
-contour(bathyLon,bathyLat,bathyZ,
-        levels = c(-10, -20, -30, -50, -100,-200),
-        lwd = c(1.5, 1.5, 1.5,1.5,1.5,1.5),
-        lty = c(1, 1, 2, 2, 3, 3),
-        drawlabels = T,  col = rev(gray.colors(6)))
-
-
-plot(DK,add=T,col="gray80")
+#~~~~~~~~~~~~~~~~~~~
+# 3) Go for the plot
+#~~~~~~~~~~~~~~~~~~~~~
 
 
 
-
-# add depth legend
-legend("bottomleft", seg.len = 3, cex = 0.8,
-       lwd = c(1, 1, 1,1,1,1),
-       lty = c(1, 1, 2, 2, 3, 3),
-       legend = c("10", "20", "30", "50", "100","200"),
-       col = rev(gray.colors(6)), title = "Depth [m]", bg= "white")
-
-
-
-plot(sbox1,col="deepskyblue4",add=T) #Spawner box 1
-plot(sbox2,col="deepskyblue4",add=T,alpha=0.5) #Spawner box 2
-
-plot(rbox1,col="orange",add=T) #Recruit box 1
-plot(rbox2,col="orange",add=T) #Recruit box 2
-plot(rbox3,col="orange",add=T) #Recruit box 3
-
-plot(srbox,density=10,add=T) #Spawner x Recruit intersection 
-
-
-
-
-## Do it in ggplot
-#~~~~~~~~~~~~~~~~~~~~
+# 3.1) Do it in ggplot
+#~~~~~~~~~~~~~~~~~~~~~~
 ext <- extent(9, 15.5, 53.7, 56.5)
 DK2 <- crop(DK,ext)
 
@@ -304,8 +247,6 @@ srboxDF <- merge(srboxPoints, srbox@data, by = "id")
 
 
 
-library(ggspatial)
-library(ggsn)
 
 
 
@@ -421,41 +362,43 @@ ggplot() +
     plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm")) 
 
 
-setwd("C:/Users/mruf/OneDrive - Danmarks Tekniske Universitet/PhD/Manuscript_03/Figures")
 ggsave("DK_map_Closures.png",dpi=450, width = 25, height = 35, units = "cm")
 
 
 
 
-## Backup
-# ggplot() +  
-#       geom_polygon(data = sbox1DF, aes(x = long, y = lat, group = group),fill="deepskyblue4", colour="black", alpha=0.6) +
-#       geom_polygon(data = sbox2DF, aes(x = long, y = lat, group = group),fill="deepskyblue4", colour="black", alpha=0.6) +
-#       geom_polygon(data = rbox1DF, aes(x = long, y = lat, group = group),fill="orange", colour="orange", alpha=0.6) +
-#       geom_polygon(data = rbox2DF, aes(x = long, y = lat, group = group),fill="orange", colour="orange", alpha=0.6) +
-#       geom_polygon(data = rbox3DF, aes(x = long, y = lat, group = group),fill="orange", colour="orange", alpha=0.6) +
-#       
-#       geom_polygon_pattern(data = srboxDF, aes(x = long, y = lat, group = group),pattern="stripe",fill="transparent",pattern_density=0.3,pattern_spacing=0.01) +
-#       
-#       geom_polygon(data = DKDF,aes(x = long, y = lat, group = group),fill="grey70",colour="black") +
-#       
-#       coord_map() +
-#       theme_bw() + 
-#       scale_x_continuous(limits=c(9, 15.5), expand = c(0,0)) +
-#       scale_y_continuous(limits=c(53.7, 56.5),expand = c(0,0)) +
-#       labs(x = "Longitude (°)", y="Latitude (°)") +
-#       theme(#legend.text = element_blank(),
-#         legend.position = "none",
-#         axis.text = element_text(size=13),
-#         #axis.title = element_blank(),
-#         axis.text.x = element_text(size=14),
-#         axis.text.y = element_text(size=14),
-#         axis.title.y = element_text(margin=margin(t = 0, r = 18, b = 0, l = 0),size=16),
-#         axis.title.x = element_text(margin=margin(t=18,r=0,b=0,l=0),size=16),
-#         plot.title = element_text(hjust = 0.5,size=14),
-#         plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm")) 
+
+# 3.2) Do it in normal plot
+#~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Just an alternative for fun...
+
+
+contour(bathyLon,bathyLat,bathyZ,
+        levels = c(-10, -20, -30, -50, -100,-200),
+        lwd = c(1.5, 1.5, 1.5,1.5,1.5,1.5),
+        lty = c(1, 1, 2, 2, 3, 3),
+        drawlabels = T,  col = rev(gray.colors(6)))
+
+
+plot(DK,add=T,col="gray80")
 
 
 
 
-  
+# add depth legend
+legend("bottomleft", seg.len = 3, cex = 0.8,
+       lwd = c(1, 1, 1,1,1,1),
+       lty = c(1, 1, 2, 2, 3, 3),
+       legend = c("10", "20", "30", "50", "100","200"),
+       col = rev(gray.colors(6)), title = "Depth [m]", bg= "white")
+
+
+
+plot(sbox1,col="deepskyblue4",add=T) #Spawner box 1
+plot(sbox2,col="deepskyblue4",add=T,alpha=0.5) #Spawner box 2
+
+plot(rbox1,col="orange",add=T) #Recruit box 1
+plot(rbox2,col="orange",add=T) #Recruit box 2
+plot(rbox3,col="orange",add=T) #Recruit box 3
+
+plot(srbox,density=10,add=T) #Spawner x Recruit intersection 
