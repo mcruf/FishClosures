@@ -38,13 +38,15 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-# 1.1) Choose life stage for which the abundance hotspot should be identified; 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## Juveniles: A0-A2
-## Spawners: A3-A5+
+# 1.1) Choose EFH for hotspot analysis
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Nursery grounds: A0-A1 (recruits)
+## Spawning grounds - A: A2-A5+ (all adult spawners)
+## Spawning grounds - B: A5+ (only very old spawners)
+## Feeding grounds: A0-A1 (recruits)
 
 
-Lstage <- c("Juveniles","Spawners")[1] # Default = Juveniles
+Hotspot <- c("Nursery","Spawning-A", "Spawning-B", 'Feeding')[1] # Default = Recruits
 
 
 
@@ -78,58 +80,48 @@ library(gridExtra)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-# Note: the LGNB-SDM output provides a dataframe where each column is a time-period.
+# Note: the LGNB-SDM output provides a dataframe where each column is a given month-year time.
 # Since we ran the model from 2005-2019 on a monthly basis, this means that we will
 # have 180 columns (V1-V180).
 
-# To identify juvenile hotpspots, we will have to take all the months into consideration, in opposit to
-# the spawner hotspot, as for the latter we know upfront the monhts corresponding to spawning (JAN-MAR).
+# To identify nursery hotspots, we will have to take all the months into consideration, in opposite to
+# the spawner hotspots, as for the latter we know upfront the months corresponding to the spawning period (JAN-MAR).
 # Whereas for the recruits we will stack the abundance layers from all months of the time series, for 
 # spawners we will only stack the abundance layers corresponding to the first three months of each year.
+# For the feeding grounds, in turn, we will focus on the months concerning late-spring & summer, as it is the
+# main period where WBS aggregate to feed.
 
 
-
-if(Lstage == "Juveniles"){
+if(Hotspot == "Nursery"){
   
-  ## Set WD where the recruits results are stored
-  setwd("~/Data/Hotspots/Recruits/")
-  #setwd("C:/Users/mruf/Documents/Fish_Closures/Data/Hotspots/Recruits/")
-  
+  ## Set WD where the LGNB-SDM model outputs are stored
+  setwd("~/Data/LGNB")
   
   
   ## A0
   load("A0.RData")
-  rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|spawn_month"))))
-  
+  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_month"))))
   
   ## A1
   load("A1.RData")
-  rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|spawn_month"))))
-  
-  
-  ## A2
-  load("A2.RData")
-  rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|spawn_month"))))
+  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_month"))))
   
   
   ## Move all results into a list
-  abulist <- list(A0,A1,A2); names(abulist) <- paste("Age",0:2,sep="")
+  abulist <- list(A0,A1); names(abulist) <- paste("Age",0:1,sep="")
   
   
   
   
-} else if(Lstage == "Spawners"){
+} else if(Hotspot == "Spawners-A"){
   
   
-  ## Set WD where the recruits results are stored
-  setwd("~/Data/Hotspots/Spawners/")
-  #setwd("C:/Users/mruf/Documents/Fish_Closures/Data/Hotspots/Spawners/")
-  
-  
-  
-  
+  ## Set WD where the LGNB-SDM model outputs are stored
+  setwd("~/Data/LGNB")
+
+
   ##  Select columns corresponding to the spawning monhts (JAN-MARCH)
-  spawn_months <- c("V1","V2","V3", #2005
+  spawning_months <- c("V1","V2","V3", #2005
                     "V13","V14","V15", #2006
                     "V25","V26","V27", #2007
                     "V37","V38","V39", #2008
@@ -146,12 +138,19 @@ if(Lstage == "Juveniles"){
                     "V169","V170","V171") #2019
   
   
+  ## A2
+  load("A2.RData")
+  A2 <- A2[,spawningmonths] #Select only the columns corresponding to spawning period
+  colnames(A2) <- paste("V",1:ncol(A2),sep="") #Rename for readbility
+  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_month"))))
+  
+  
   ## A3
   load("A3.RData")
   A3 <- A3[,spawn_months] #Select only the columns corresponding to spawning period
   colnames(A3) <- paste("V",1:ncol(A3),sep="") #Rename for readbility
   
-  rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|spawn_month"))))
+  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_month"))))
   
   
   ## A4
@@ -160,7 +159,7 @@ if(Lstage == "Juveniles"){
   colnames(A4) <- paste("V",1:ncol(A4),sep="") #Rename for readbility
   
   
-  rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|spawn_month"))))
+  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_month"))))
   
   
   ## A5
@@ -168,11 +167,11 @@ if(Lstage == "Juveniles"){
   A5 <- A5[,spawn_months] #Select only the columns corresponding to spawning period
   colnames(A5) <- paste("V",1:ncol(A5),sep="") #Rename for readbility
   
-  rm(list=setdiff(ls(), ls(pattern=c("Lstage|A0|A1|A2|A3|A4|A5|gr|spawn_month"))))
+  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_month"))))
   
   
   ## Move all results into a list
-  abulist <- list(A3,A4,A5); names(abulist) <- paste("Age",3:5,sep="")
+  abulist <- list(A2, A3,A4,A5); names(abulist) <- paste("Age",3:5,sep="")
   
   
   
@@ -353,7 +352,7 @@ for(i in 1:ncol(Xaxis)){
 
 ## Plot the CRDF curves of all time steps
 par(mfrow=c(1,1))
-plot(Xaxis[,1],Yaxis[,1],type="s",lwd=2, main=Lstage)
+plot(Xaxis[,1],Yaxis[,1],type="s",lwd=2, main=Hotspot)
 for(i in 1:ncol(Xaxis)){ #either Xaxis or Yaxis, never mind
   lines(Xaxis[,i],Yaxis[,i],lwd=2)
 }
@@ -391,7 +390,7 @@ for(i in seq_along(treshold)){
   tx <- unlist(tx)
 }
 
-#write.csv(tx,paste(Lstage, "_Abundance_treshold",".csv", sep=""))
+#write.csv(tx,paste(Hotspot, "_Abundance_treshold",".csv", sep=""))
 
 
 
@@ -476,7 +475,7 @@ plot(DK_poly, col=1, add=T)
 # The polygons are already stored in the ~/Data/Hotspot/ folder
 
 
-# if(Lstage == "Recruits"){
+# if(Hotspot == "Nursery"){
 #   
 #   box1 <- drawPoly() #draws polygon in the Kattegat
 #   box2 <- drawPoly() #draws polygon in the upper part of Bornholm
@@ -492,7 +491,7 @@ plot(DK_poly, col=1, add=T)
 #   writeOGR(poly_box3, dsn = '.', layer = 'Recruits_box3', driver = "ESRI Shapefile")
 #   
 # 
-# } else if(Lstage == "Spawners"){
+# } else if(Hotspot == "Spawners"){
 #   
 #   box1 <- drawPoly() #draws polygon in the Kattegat - However, this is already a closure area. so leave it out
 #   box2 <- drawPoly() #draws polygon in the WBS, close to Bornholm
@@ -525,7 +524,7 @@ plot(DK_poly, col=1, add=T)
 
 
 # Do some data wraggling
-if(Lstage == "Recruits"){
+if(Hotspot == "Nursery"){
   
   Xaxis_long <- tidyr::gather(as.data.frame(Xaxis), TimeStep, measurement, V1:V180, factor_key=TRUE)
   Yaxis_long <- tidyr::gather(as.data.frame(Yaxis), TimeStep, measurement, V1:V180, factor_key=TRUE)
@@ -550,7 +549,7 @@ if(Lstage == "Recruits"){
   
   
   
-} else if (Lstage == "Spawners"){
+} else if (Hotspot == "Spawners"){
   
   Xaxis_long <- tidyr::gather(as.data.frame(Xaxis), TimeStep, measurement, V1:V45, factor_key=TRUE)
   Yaxis_long <- tidyr::gather(as.data.frame(Yaxis), TimeStep, measurement, V1:V45, factor_key=TRUE)
