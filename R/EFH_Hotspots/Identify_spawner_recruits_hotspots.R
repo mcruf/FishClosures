@@ -1,11 +1,11 @@
-##########################################################################################
-#                                                                                        #
-##                  Identify abundance hotspots of juveniles & spawners                 ##
-##                                    (Rufener et al.)                                  ##
-#                                                                                        #
-##########################################################################################
+############################################################################################
+#                                                                                          #
+##                  Identify abundance hotspots of Essential Fish habitats                ##
+##                                    (Rufener et al.)                                    ##
+#                                                                                          #
+############################################################################################
 
-# Last update: March 2022
+# Last update: February 2023
 
 # Code written and mantained by Marie-Christine Rufener
 # Contact < macrufener@gmail.com > for any query or to report code issues.
@@ -16,15 +16,17 @@
 # The model was run on a monthly basis from 2005-2019, which means that we get
 # predicted abundance maps for each month of the time series.
 
-# Here, we identify and evaluate the persistency of recruits (A0-A2) and spawner abundance hotspot.
-# To do so, the present script follows the following steps:
+# We will take these results to identify the persistency of the following abudnance hotspots:
+# - Recruits (A0-A1)
+# - Spawners (A2-A5+)
+# - Old-spawners (A5+) 
+# - Feeding grounds 
 
+# The present script is organized as follows:
 
-# The following script is divided into three sections:
 # 1) Set default inputs & R libraries
 # 2) Load data files
 # 3) Evaluate abundance hotspot persistency
-# * At the end of section 3, 
 
 
 
@@ -93,7 +95,7 @@ if(Lstage == "Juveniles"){
   setwd("~/Data/Hotspots/Recruits/")
   #setwd("C:/Users/mruf/Documents/Fish_Closures/Data/Hotspots/Recruits/")
   
-
+  
   
   ## A0
   load("A0.RData")
@@ -367,18 +369,18 @@ for(i in 1:ncol(Xaxis)){ #either Xaxis or Yaxis, never mind
 treshold <- list()
 
 for(i in 1:ncol(Xaxis)){ #either Xaxis or Yaxis, never mind
-   plot(Xaxis[,i],Yaxis[,i],type="s",lwd=2, main=colnames(dfstack)[i])
-   abline(0,1,col=3,lwd=2)
-
-   #treshold[[i]] <- locator() #Manual way of defining threshold
-   
-   ## Automatized way to find the tangent (written by Francois Bastardie for NORDFO project)
-   idx_max_b <-  which.max(Yaxis[,i] - Xaxis[,i])  # b=y-x knowing a 45 degree line has slope=1 and line equation is then y=x+b. Therefore, max of b gives the param of the line having the highest intersecting (tangent) point to the cumulated obs curve
-   thres_x   <- Xaxis[idx_max_b, i]
-   thres_y   <- Yaxis[idx_max_b, i]
-   lines(Xaxis[,i], Xaxis[,i]+ (Yaxis[idx_max_b,i] - Xaxis[idx_max_b, i]), col=3)
-   treshold[[i]] <- list(x=thres_x, y=thres_y)
-
+  plot(Xaxis[,i],Yaxis[,i],type="s",lwd=2, main=colnames(dfstack)[i])
+  abline(0,1,col=3,lwd=2)
+  
+  #treshold[[i]] <- locator() #Manual way of defining threshold
+  
+  ## Automatized way to find the tangent (written by Francois Bastardie for NORDFO project)
+  idx_max_b <-  which.max(Yaxis[,i] - Xaxis[,i])  # b=y-x knowing a 45 degree line has slope=1 and line equation is then y=x+b. Therefore, max of b gives the param of the line having the highest intersecting (tangent) point to the cumulated obs curve
+  thres_x   <- Xaxis[idx_max_b, i]
+  thres_y   <- Yaxis[idx_max_b, i]
+  lines(Xaxis[,i], Xaxis[,i]+ (Yaxis[idx_max_b,i] - Xaxis[idx_max_b, i]), col=3)
+  treshold[[i]] <- list(x=thres_x, y=thres_y)
+  
 }
 
 
@@ -416,7 +418,7 @@ for(i in 1:ncol(dfstack)){
   # line below taken from Francois Bastardie code (NORDFO project)
   gravity_point <- apply(gr[dfstack[,i] >= tx[i],], 2, mean)
   points(gravity_point, pch="*", cex=5, col="black")
-
+  
 }
 
 
@@ -525,53 +527,53 @@ plot(DK_poly, col=1, add=T)
 # Do some data wraggling
 if(Lstage == "Recruits"){
   
-Xaxis_long <- tidyr::gather(as.data.frame(Xaxis), TimeStep, measurement, V1:V180, factor_key=TRUE)
-Yaxis_long <- tidyr::gather(as.data.frame(Yaxis), TimeStep, measurement, V1:V180, factor_key=TRUE)
-
-
-Y2005 <- c(paste("V",1:12,sep="")) 
-Y2006 <- c(paste("V",13:24,sep="")) 
-Y2007 <- c(paste("V",25:36,sep="")) 
-Y2008 <- c(paste("V",37:48,sep="")) 
-Y2009 <- c(paste("V",49:60,sep="")) 
-Y2010 <- c(paste("V",61:72,sep="")) 
-Y2011 <- c(paste("V",73:84,sep="")) 
-Y2012 <- c(paste("V",85:96,sep="")) 
-Y2013 <- c(paste("V",97:108,sep="")) 
-Y2014 <- c(paste("V",109:120,sep=""))  
-Y2015 <- c(paste("V",121:132,sep=""))  
-Y2016 <- c(paste("V",133:144,sep=""))  
-Y2017 <- c(paste("V",145:156,sep=""))  
-Y2018 <- c(paste("V",157:168,sep=""))  
-Y2019 <- c(paste("V",169:180,sep=""))  
-
-
-
-
+  Xaxis_long <- tidyr::gather(as.data.frame(Xaxis), TimeStep, measurement, V1:V180, factor_key=TRUE)
+  Yaxis_long <- tidyr::gather(as.data.frame(Yaxis), TimeStep, measurement, V1:V180, factor_key=TRUE)
+  
+  
+  Y2005 <- c(paste("V",1:12,sep="")) 
+  Y2006 <- c(paste("V",13:24,sep="")) 
+  Y2007 <- c(paste("V",25:36,sep="")) 
+  Y2008 <- c(paste("V",37:48,sep="")) 
+  Y2009 <- c(paste("V",49:60,sep="")) 
+  Y2010 <- c(paste("V",61:72,sep="")) 
+  Y2011 <- c(paste("V",73:84,sep="")) 
+  Y2012 <- c(paste("V",85:96,sep="")) 
+  Y2013 <- c(paste("V",97:108,sep="")) 
+  Y2014 <- c(paste("V",109:120,sep=""))  
+  Y2015 <- c(paste("V",121:132,sep=""))  
+  Y2016 <- c(paste("V",133:144,sep=""))  
+  Y2017 <- c(paste("V",145:156,sep=""))  
+  Y2018 <- c(paste("V",157:168,sep=""))  
+  Y2019 <- c(paste("V",169:180,sep=""))  
+  
+  
+  
+  
 } else if (Lstage == "Spawners"){
   
-Xaxis_long <- tidyr::gather(as.data.frame(Xaxis), TimeStep, measurement, V1:V45, factor_key=TRUE)
-Yaxis_long <- tidyr::gather(as.data.frame(Yaxis), TimeStep, measurement, V1:V45, factor_key=TRUE)
-
-Y2005 <- c(paste("V",1:3,sep="")) 
-Y2006 <- c(paste("V",4:6,sep="")) 
-Y2007 <- c(paste("V",7:9,sep="")) 
-Y2008 <- c(paste("V",10:12,sep="")) 
-Y2009 <- c(paste("V",13:15,sep="")) 
-Y2010 <- c(paste("V",16:18,sep="")) 
-Y2011 <- c(paste("V",19:21,sep="")) 
-Y2012 <- c(paste("V",22:24,sep="")) 
-Y2013 <- c(paste("V",25:27,sep="")) 
-Y2014 <- c(paste("V",28:30,sep=""))  
-Y2015 <- c(paste("V",31:33,sep=""))  
-Y2016 <- c(paste("V",34:36,sep=""))  
-Y2017 <- c(paste("V",37:39,sep=""))  
-Y2018 <- c(paste("V",40:42,sep=""))  
-Y2019 <- c(paste("V",43:45,sep=""))  
-
+  Xaxis_long <- tidyr::gather(as.data.frame(Xaxis), TimeStep, measurement, V1:V45, factor_key=TRUE)
+  Yaxis_long <- tidyr::gather(as.data.frame(Yaxis), TimeStep, measurement, V1:V45, factor_key=TRUE)
+  
+  Y2005 <- c(paste("V",1:3,sep="")) 
+  Y2006 <- c(paste("V",4:6,sep="")) 
+  Y2007 <- c(paste("V",7:9,sep="")) 
+  Y2008 <- c(paste("V",10:12,sep="")) 
+  Y2009 <- c(paste("V",13:15,sep="")) 
+  Y2010 <- c(paste("V",16:18,sep="")) 
+  Y2011 <- c(paste("V",19:21,sep="")) 
+  Y2012 <- c(paste("V",22:24,sep="")) 
+  Y2013 <- c(paste("V",25:27,sep="")) 
+  Y2014 <- c(paste("V",28:30,sep=""))  
+  Y2015 <- c(paste("V",31:33,sep=""))  
+  Y2016 <- c(paste("V",34:36,sep=""))  
+  Y2017 <- c(paste("V",37:39,sep=""))  
+  Y2018 <- c(paste("V",40:42,sep=""))  
+  Y2019 <- c(paste("V",43:45,sep=""))  
+  
 }
 
-  
+
 
 df_long <- data.frame(TimeStep=Xaxis_long$TimeStep, Xmeasure = Xaxis_long$measurement,
                       Ymeasure = Yaxis_long$measurement)
