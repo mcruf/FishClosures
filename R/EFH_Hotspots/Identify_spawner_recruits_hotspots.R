@@ -7,12 +7,12 @@
 
 # Last update: February 2023
 
-# Code written and mantained by Marie-Christine Rufener
+# Code written and maintained by Marie-Christine Rufener
 # Contact < macrufener@gmail.com > for any query or to report code issues.
 
 
 # In the first script (LGNB_SpawnerRecruits.R) script we have run the LGNB-SDM 
-# for WB cod sepparately for each age group (age 0 - age5+).
+# for WB cod separately for each age group (age 0 - age5+).
 # The model was run on a monthly basis from 2005-2019, which means that we get
 # predicted abundance maps for each month of the time series.
 
@@ -24,34 +24,16 @@
 
 # The present script is organized as follows:
 
-# 1) Set default inputs & R libraries
+# 1) Set default inputs 
 # 2) Load data files
 # 3) Evaluate abundance hotspot persistency
 
 
-
 #><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
 
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Section 1: Set default inputs & R libraries
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-# 1.1) Choose EFH for hotspot analysis
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## Nursery grounds: A0-A1 (recruits)
-## Spawning grounds - A: A2-A5+ (all adult spawners)
-## Spawning grounds - B: A5+ (only very old spawners)
-## Feeding grounds: A0-A1 (recruits)
-
-
-Hotspot <- c("Nursery","Spawning-A", "Spawning-B", 'Feeding')[1] # Default = Recruits
-
-
-
-# 1.2) Load R libraries
-#~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~
+# Load R libraries
+#~~~~~~~~~~~~~~~~~~~
 library(ggplot2)
 library(ggpubr)
 library(maptools)
@@ -69,6 +51,84 @@ library(tidyverse)
 library(gridExtra)
 
 
+#><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Section 1: Set default inputs 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+# 1.1) Choose EFH for hotspot analysis
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Nursery: nursery grounds for recruits (A0-A1)
+## Spawning-A: spawning grounds for all adult spawners (A2-A5+)
+## Spawning-O: spawning grounds for old spawners (A5+)
+## Feeding-R: feeding grounds for recruits (A0-A1)
+## Feeding-A: feeding grounds for adults (A2-A5+)
+
+
+Hotspot <- c("Nursery", "Spawning-A", "Spawning-O", 'Feeding-R', 'Feeding-A')[4] # Default = Nursery
+
+
+# 1.2) Define months for the given EFH
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# the LGNB-SDM output provides a dataframe where each column is a given month-year time.
+# Since we ran the model from 2005-2019 on a monthly basis, this means that we will
+# have 180 columns (V1-V180).
+
+# To identify nursery hotspots, we will have to take all the months into consideration (v1-v180), in opposite to
+# the spawner hotspots, as for the latter we know upfront the months corresponding to the spawning period (JAN-MAR).
+# Whereas for the recruits we will stack the abundance layers from all months of the time series, for 
+# spawners we will only stack the abundance layers corresponding to the first three months of each year.
+# For the feeding grounds, in turn, we will focus on the months concerning late-spring & summer, as it is the
+# main period where WBS aggregate to feed.
+
+
+if(Hotspot == 'Nursery'){
+  
+  ## Select columns corresponding to nursery months (year round)
+  nursery_months <- paste('V', 1:180, sep="")
+  
+} else if(Hotspot == 'Spawning-A' | Hotspot == 'Spawning-O'){
+  
+  ##  Select columns corresponding to the spawning months (JAN-MARCH)
+  spawning_months <- c("V1","V2","V3", #2005
+                       "V13","V14","V15", #2006
+                       "V25","V26","V27", #2007
+                       "V37","V38","V39", #2008
+                       "V49","V50","V51", #2009
+                       "V61","V62","V63", #2010
+                       "V73","V74","V75", #2011
+                       "V85","V86","V87", #2012
+                       "V97","V98","V99", #2013
+                       "V109","V110","V111", #2014
+                       "V121","V122","V123", #2015
+                       "V133","V134","V135", #2016
+                       "V145","V146","V147", #2017
+                       "V157","V158","V159", #2018
+                       "V169","V170","V171") #2019
+  
+} else if(Hotspot == 'Feeding-R' | Hotspot == 'Feeding-A'){
+  
+  ## Columns corresponding to feeding months (May-AUG)
+  feeding_months <- c("V5","V6","V7","V8", #2005
+                       "V17","V18","V19","V20", #2006
+                       "V29","V30","V31","V32", #2007
+                       "V41","V42","V43","V44", #2008
+                       "V53","V54","V55","V56", #2009
+                       "V65","V66","V67","V68", #2010
+                       "V77","V78","V79","V80", #2011
+                       "V89","V90","V91","V92", #2012
+                       "V101","V102","V103","V104", #2013
+                       "V113","V114","V115","V116", #2014
+                       "V125","V126","V127","V128", #2015
+                       "V137","V138","V139","V140", #2016
+                       "V149","V150","V151","V152", #2017
+                       "V161","V162","V163","V164", #2018
+                       "V173","V174","V175","V176") #2019
+}
+
 
 
 #><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
@@ -80,31 +140,100 @@ library(gridExtra)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-# Note: the LGNB-SDM output provides a dataframe where each column is a given month-year time.
-# Since we ran the model from 2005-2019 on a monthly basis, this means that we will
-# have 180 columns (V1-V180).
-
-# To identify nursery hotspots, we will have to take all the months into consideration, in opposite to
-# the spawner hotspots, as for the latter we know upfront the months corresponding to the spawning period (JAN-MAR).
-# Whereas for the recruits we will stack the abundance layers from all months of the time series, for 
-# spawners we will only stack the abundance layers corresponding to the first three months of each year.
-# For the feeding grounds, in turn, we will focus on the months concerning late-spring & summer, as it is the
-# main period where WBS aggregate to feed.
+# Set WD where the LGNB-SDM model outputs are stored
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#setwd("~/Data/LGNB")
+setwd("/Users/marie-christinerufener/Desktop/FishClosures//Data/LGNB")
 
 
-if(Hotspot == "Nursery"){
-  
-  ## Set WD where the LGNB-SDM model outputs are stored
-  setwd("~/Data/LGNB")
-  
+# Load the data files
+#~~~~~~~~~~~~~~~~~~~~~~
+
+## Nursery grounds
+if(Hotspot == "Nursery"){ 
   
   ## A0
   load("A0.RData")
-  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_month"))))
+  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|Hotspot|nursery_months"))))
   
   ## A1
   load("A1.RData")
-  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_month"))))
+  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|Hotspot|nursery_months"))))
+  
+  
+  ## Move all results into a list
+  abulist <- list(A0,A1); names(abulist) <- paste("Age",0:1,sep="")
+  
+
+  ## Spawning grounds all adults
+} else if(Hotspot == "Spawning-A"){
+  
+  
+  ## A2
+  load("A2.RData")
+  A2 <- A2[,spawning_months] #Select only the columns corresponding to spawning period
+  colnames(A2) <- paste("V",1:ncol(A2),sep="") #Rename for readability
+  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_months|Hotspot"))))
+  
+  
+  ## A3
+  load("A3.RData")
+  A3 <- A3[,spawning_months] #Select only the columns corresponding to spawning period
+  colnames(A3) <- paste("V",1:ncol(A3),sep="") #Rename for readability
+  
+  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_months|Hotspot"))))
+  
+  
+  ## A4
+  load("A4.RData")
+  A4 <- A4[,spawning_months] #Select only the columns corresponding to spawning period
+  colnames(A4) <- paste("V",1:ncol(A4),sep="") #Rename for readability
+  
+  
+  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_months|Hotspot"))))
+  
+  
+  ## A5
+  load("A5.RData")
+  A5 <- A5[,spawning_months] #Select only the columns corresponding to spawning period
+  colnames(A5) <- paste("V",1:ncol(A5),sep="") #Rename for readability
+  
+  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_months|Hotspot"))))
+  
+  
+  ## Move all results into a list
+  abulist <- list(A2,A3,A4,A5); names(abulist) <- paste("Age",2:5,sep="")
+
+  
+  ## Spawning grounds old adults
+} else if(Hotspot == 'Spawning-O'){
+  
+
+  ## A5
+  load("A5.RData")
+  A5 <- A5[,spawning_months] #Select only the columns corresponding to spawning period
+  colnames(A5) <- paste("V",1:ncol(A5),sep="") #Rename for readability
+  
+  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_months|Hotspot"))))
+  
+  
+  ## Move all results into a list
+  abulist <- list(A5); names(abulist) <- paste("Age",5,sep="")
+  
+  
+  ## Feeding grounds for recruits
+} else if(Hotspot == 'Feeding-R'){
+
+  ## A0
+  load("A0.RData")
+  A0 <- A0[,feeding_months] #Select only the columns corresponding to feeding period
+  rm(list=setdiff(ls(), ls(pattern=c("A0|A1|gr|datatot|feeding_months|Hotspot"))))
+
+
+  ## A1
+  load("A1.RData")
+  A1 <- A1[,feeding_months] #Select only the columns corresponding to feeding period
+  rm(list=setdiff(ls(), ls(pattern=c("A0|A1|gr|datatot|feeding_months|Hotspot"))))
   
   
   ## Move all results into a list
@@ -112,70 +241,44 @@ if(Hotspot == "Nursery"){
   
   
   
-  
-} else if(Hotspot == "Spawners-A"){
-  
-  
-  ## Set WD where the LGNB-SDM model outputs are stored
-  setwd("~/Data/LGNB")
-
-
-  ##  Select columns corresponding to the spawning monhts (JAN-MARCH)
-  spawning_months <- c("V1","V2","V3", #2005
-                    "V13","V14","V15", #2006
-                    "V25","V26","V27", #2007
-                    "V37","V38","V39", #2008
-                    "V49","V50","V51", #2009
-                    "V61","V62","V63", #2010
-                    "V73","V74","V75", #2011
-                    "V85","V86","V87", #2012
-                    "V97","V98","V99", #2013
-                    "V109","V110","V111", #2014
-                    "V121","V122","V123", #2015
-                    "V133","V134","V135", #2016
-                    "V145","V146","V147", #2017
-                    "V157","V158","V159", #2018
-                    "V169","V170","V171") #2019
-  
+  ## Feeding grounds for adults
+} else if(Hotspot == 'Feeding-A'){
   
   ## A2
   load("A2.RData")
-  A2 <- A2[,spawningmonths] #Select only the columns corresponding to spawning period
-  colnames(A2) <- paste("V",1:ncol(A2),sep="") #Rename for readbility
-  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_month"))))
+  A2 <- A2[,feeding_months] #Select only the columns corresponding to feeding period
+  colnames(A2) <- paste("V",1:ncol(A2),sep="") #Rename for readability
+  rm(list=setdiff(ls(), ls(pattern=c("A2|A3|A4|A5|gr|datatot|feeding_months|Hotspot"))))
   
   
   ## A3
   load("A3.RData")
-  A3 <- A3[,spawn_months] #Select only the columns corresponding to spawning period
-  colnames(A3) <- paste("V",1:ncol(A3),sep="") #Rename for readbility
-  
-  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_month"))))
+  A3 <- A3[,feeding_months] #Select only the columns corresponding to feeding period
+  colnames(A3) <- paste("V",1:ncol(A3),sep="") #Rename for readability
+  rm(list=setdiff(ls(), ls(pattern=c("A2|A3|A4|A5|gr|datatot|feeding_months|Hotspot"))))
   
   
   ## A4
   load("A4.RData")
-  A4 <- A4[,spawn_months] #Select only the columns corresponding to spawning period
-  colnames(A4) <- paste("V",1:ncol(A4),sep="") #Rename for readbility
-  
-  
-  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_month"))))
+  A4 <- A4[,feeding_months] #Select only the columns corresponding to feeding period
+  colnames(A4) <- paste("V",1:ncol(A4),sep="") #Rename for readability
+  rm(list=setdiff(ls(), ls(pattern=c("A2|A3|A4|A5|gr|datatot|feeding_months|Hotspot"))))
   
   
   ## A5
   load("A5.RData")
-  A5 <- A5[,spawn_months] #Select only the columns corresponding to spawning period
-  colnames(A5) <- paste("V",1:ncol(A5),sep="") #Rename for readbility
-  
-  rm(list=setdiff(ls(), ls(pattern=c("Hotspot|A0|A1|A2|A3|A4|A5|gr|spawning_month"))))
+  A5 <- A5[,feeding_months] #Select only the columns corresponding to feeding period
+  colnames(A5) <- paste("V",1:ncol(A5),sep="") #Rename for readability
+  rm(list=setdiff(ls(), ls(pattern=c("A2|A3|A4|A5|gr|datatot|feeding_months|Hotspot"))))
   
   
   ## Move all results into a list
-  abulist <- list(A2, A3,A4,A5); names(abulist) <- paste("Age",3:5,sep="")
+  abulist <- list(A2,A3,A4,A5); names(abulist) <- paste("Age",2:5,sep="")
   
-  
-  
+
 }
+
+
 
 
 # 2.1) Quick 'n dirty plotting
@@ -186,8 +289,9 @@ if(Hotspot == "Nursery"){
 
 ## 2.1.1) Retrieve base map of Denmark
 data("worldHiresMapEnv")
-DK_coast_poly <- map("worldHires",  fill=TRUE, col="transparent",
-                     plot=FALSE, xlim=c(9,15.5), ylim=c(54.5,58))
+DK_coast_poly <- maps::map("worldHires",  fill=TRUE, col="transparent",
+                       plot=FALSE, xlim=c(9,15.5), ylim=c(54.5,58))
+
 DK_coast_poly$names
 IDs <- sapply(strsplit(DK_coast_poly$names, ":"), function(x) x[1])
 DK_poly <- map2SpatialPolygons(DK_coast_poly, IDs=IDs,
@@ -201,12 +305,11 @@ YearMonth <- as.factor(format(as.Date(tstep), "%Y-%m"))
 
 ## 2.1.3) Go for the plot (just take an arbitrary age group and time period)
 plot(gr,type = "n",xlab="Longitude",ylab="Latitude",las=1,xlim=c(9.25,15.4))
-image(gr, concTransform(abulist[[1]][,15]), #abulist[[1]] = Age0, time step = 15
+image(gr, concTransform(abulist[[1]][,15]), #time step = 15
       col = tim.colors(99),
       add=TRUE)
 plot(DK_poly,col=1,add=T)
 title(main = levels(YearMonth)[15])
-mysubtitle = names(abulist)[1]
 
 
 ## To produce gif to see the spatio-temporal abundance dynamics
@@ -246,12 +349,12 @@ mysubtitle = names(abulist)[1]
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-### Step 1) Stack the YearMonth abundance layers of the individual age groups. 
-## For each YearMonth map, we then sum over all abundance values across the spatial
-## grid IDs. This provides a "total juvenile abundance" layer for each YearMonth,
+### Step 1) Stack the Month-Year abundance layers of the individual age groups. 
+## For each Month-Year map, we then sum over all abundance values across the spatial
+## grid IDs. This provides a "total recruits/adult abundance" layer for each Month-Year,
 ## and is essentially analogous to the predict first, assemble later approach (Ferrier and Guisan, 2006)
 
-### Step 2) Take the generated YearMonth maps and evaluate the abundance 
+### Step 2) Take the generated Month-Year maps and evaluate the abundance 
 ## hotspots following Bartolino's et al. (2011) approach - A frequency 
 ## distribution approach to hotspot identification
 
@@ -273,12 +376,21 @@ abulist_exp <- lapply(abulist, exp)
 ## 3.2.2) Stack abundance layers
 dfstack <- NULL
 
-for(age in seq_along(YearMonth)){
+if(Hotspot == 'Nursery'){
+  time <- nursery_months
+} else if(Hotspot == 'Spawning-A' | Hotspot == 'Spawning-O'){
+  time <- spawning_months
+} else if(Hotspot == 'Feeding-R' | Hotspot == 'Feeding-A'){
+  time <- feeding_months
+}
+
+
+for(age in seq_along(time)){
   p <- rowSums(sapply(abulist_exp, `[[`, age), na.rm = TRUE)
   dfstack <- cbind(dfstack, p)
 }
 
-colnames(dfstack) <- colnames(abulist_exp[[1]]) #take an arbitray number among the list
+colnames(dfstack) <- colnames(abulist_exp[[1]]) #take an arbitrary number among the list
 
 ## To see the progress...
 # for(i in 1:ncol(dfstack)){
@@ -304,18 +416,17 @@ colnames(dfstack) <- colnames(abulist_exp[[1]]) #take an arbitray number among t
 # and N is the total number of cases
 
 
-
 # We have to define two different functions, one describing the x-axis
 # and the other the y-axis of the CRDF curve.
 # For the x-axis, we basically have to conduct three steps:
 # 1) Order the abundance values of each month from smallest to largest
-# 2)Sort these values from smallest to largest.
+# 2) Sort these values from smallest to largest.
 # 3) Apply Bartolino's formula, i.e., we take the abundance value of a given 
 # grid cell of the spatial grid and divide it by the max abundance.
 
 
 
-## 3.2.1) Function to define the X-axis of Bartolino's method
+## 3.2.1) Function to define the X-axis and Y-axis of Bartolino's method
 fxax <- function(x){
   i  <- order(x)
   ys <- sort(x)
@@ -324,8 +435,6 @@ fxax <- function(x){
 }
 
 
-
-### 3.2.2) Function to define the Y-axis of Bartolino's method
 fyax <- function(x) {
   s <- 1:length(x)
   l <- length(x)
@@ -336,7 +445,6 @@ fyax <- function(x) {
 
 
 ### 3.2.3) Define the X and Y axes
-
 Xaxis <- apply(dfstack, 2, fxax) #X-axis
 Yaxis <- apply(dfstack, 2, fyax) #Y-axis
 
@@ -359,7 +467,7 @@ for(i in 1:ncol(Xaxis)){ #either Xaxis or Yaxis, never mind
 
 
 
-### 3.2.4) Define the abundance treshold
+### 3.2.4) Define the abundance threshold
 
 ## Here we still apply Bartolino's method, which defines the hotspot treshold as the value
 ## delimited by a 45degree tangent in the CRDF curve from the plots above. 
@@ -394,7 +502,7 @@ for(i in seq_along(treshold)){
 
 
 
-### 3.2.5) Apply the abundance treshold for each time step
+### 3.2.5) Apply the abundance threshold for each time step
 ConcTransform <- function(x) # Based on Bartolino et al. (2011)
 {
   i <- order(x)
@@ -412,7 +520,6 @@ collect_gravity_points <- NULL
 for(i in 1:ncol(dfstack)){
   image(gr, ConcTransform(dfstack[,i]) >= tx[i])
   title(colnames(dfstack)[i])
-  
   
   # line below taken from Francois Bastardie code (NORDFO project)
   gravity_point <- apply(gr[dfstack[,i] >= tx[i],], 2, mean)
@@ -433,7 +540,7 @@ for(i in 1:ncol(dfstack)){
 # This produces a binary variable: 1 where grid ID is a hotpost, 0 for gird ID that is NOT a hotspot
 
 
-threshold_for_persistency <- 0.8 #Conservative treshold based on STECF recommendations (0.75)
+threshold_for_persistency <- 0.8 #Conservative threshold based on STECF recommendations (0.75)
 
 
 
@@ -453,11 +560,13 @@ table(persistency[,1]); table(persistency2[,1]) #Doubble check that everything i
 
 head(persistency2)
 
+
 ### 3.3.2) Add relevant columns
 persistency2$sum <- rowSums(persistency2)
-persistency2$Index <- persistency2$sum/45
 persistency2$gr_lon <- gr$lon
 persistency2$gr_lat <- gr$lat
+persistency2$Index <- persistency2$sum/length(time) 
+
 
 
 ### 3.3.3) Go for the plot
@@ -549,7 +658,7 @@ if(Hotspot == "Nursery"){
   
   
   
-} else if (Hotspot == "Spawners"){
+} else if (Hotspot == "Spawning-A" | Hotspot == 'Spawning-O'){
   
   Xaxis_long <- tidyr::gather(as.data.frame(Xaxis), TimeStep, measurement, V1:V45, factor_key=TRUE)
   Yaxis_long <- tidyr::gather(as.data.frame(Yaxis), TimeStep, measurement, V1:V45, factor_key=TRUE)
@@ -570,7 +679,28 @@ if(Hotspot == "Nursery"){
   Y2018 <- c(paste("V",40:42,sep=""))  
   Y2019 <- c(paste("V",43:45,sep=""))  
   
-}
+} else if(Hotspot == 'Feeding-R' | Hotspot == 'Feeding-A'){
+  
+  Xaxis_long <- tidyr::gather(as.data.frame(Xaxis), TimeStep, measurement, V5:V176, factor_key=TRUE)
+  Yaxis_long <- tidyr::gather(as.data.frame(Yaxis), TimeStep, measurement, V5:V176, factor_key=TRUE)
+  
+  Y2005 <- feeding_months[1:4]
+  Y2006 <- feeding_months[5:8]
+  Y2007 <- feeding_months[9:12]
+  Y2008 <- feeding_months[13:16]
+  Y2009 <- feeding_months[17:20]
+  Y2010 <- feeding_months[21:24]
+  Y2011 <- feeding_months[25:28]
+  Y2012 <- feeding_months[29:32] 
+  Y2013 <- feeding_months[33:36]
+  Y2014 <- feeding_months[37:40] 
+  Y2015 <- feeding_months[41:44]
+  Y2016 <- feeding_months[45:48]
+  Y2017 <- feeding_months[49:52]
+  Y2018 <- feeding_months[53:56]
+  Y2019 <- feeding_months[57:60]
+
+  }
 
 
 
@@ -580,20 +710,20 @@ df_long <- data.frame(TimeStep=Xaxis_long$TimeStep, Xmeasure = Xaxis_long$measur
 
 
 df_long$Year <- ifelse(df_long$TimeStep %in% Y2005,"2005",
-                       ifelse(df_long$TimeStep %in% Y2006,"2006",
-                              ifelse(df_long$TimeStep %in% Y2007,"2007", 
-                                     ifelse(df_long$TimeStep %in% Y2008,"2008", 
-                                            ifelse(df_long$TimeStep %in% Y2009,"2009", 
-                                                   ifelse(df_long$TimeStep %in% Y2010,"2010", 
-                                                          ifelse(df_long$TimeStep %in% Y2011,"2011", 
-                                                                 ifelse(df_long$TimeStep %in% Y2012,"2012", 
-                                                                        ifelse(df_long$TimeStep %in% Y2013,"2013", 
-                                                                               ifelse(df_long$TimeStep %in% Y2014,"2014", 
-                                                                                      ifelse(df_long$TimeStep %in% Y2015,"2015", 
-                                                                                             ifelse(df_long$TimeStep %in% Y2016,"2016",
-                                                                                                    ifelse(df_long$TimeStep %in% Y2017,"2017",
-                                                                                                           ifelse(df_long$TimeStep %in% Y2018,"2018",
-                                                                                                                  "2019"))))))))))))))
+                ifelse(df_long$TimeStep %in% Y2006,"2006",
+                ifelse(df_long$TimeStep %in% Y2007,"2007", 
+                ifelse(df_long$TimeStep %in% Y2008,"2008", 
+                ifelse(df_long$TimeStep %in% Y2009,"2009", 
+                ifelse(df_long$TimeStep %in% Y2010,"2010", 
+                ifelse(df_long$TimeStep %in% Y2011,"2011", 
+                ifelse(df_long$TimeStep %in% Y2012,"2012", 
+                ifelse(df_long$TimeStep %in% Y2013,"2013", 
+                ifelse(df_long$TimeStep %in% Y2014,"2014", 
+                ifelse(df_long$TimeStep %in% Y2015,"2015", 
+                ifelse(df_long$TimeStep %in% Y2016,"2016",
+                ifelse(df_long$TimeStep %in% Y2017,"2017",
+                ifelse(df_long$TimeStep %in% Y2018,"2018",
+                "2019"))))))))))))))
 
 
 
