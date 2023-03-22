@@ -68,7 +68,7 @@ library(gridExtra)
 ## Feeding-A: feeding grounds for adults (A2-A5+)
 
 
-Hotspot <- c("Nursery", "Spawning-A", "Spawning-O", 'Feeding-R', 'Feeding-A')[4] # Default = Nursery
+Hotspot <- c("Nursery", "Spawning-A", "Spawning-O", 'Feeding-R', 'Feeding-A')[5] # Default = Nursery
 
 
 # 1.2) Define months for the given EFH
@@ -515,15 +515,15 @@ ConcTransform <- function(x) # Based on Bartolino et al. (2011)
 
 
 # Just to check
-collect_gravity_points <- NULL
+gravity_point <- NULL
 
 for(i in 1:ncol(dfstack)){
   image(gr, ConcTransform(dfstack[,i]) >= tx[i])
   title(colnames(dfstack)[i])
   
   # line below taken from Francois Bastardie code (NORDFO project)
-  gravity_point <- apply(gr[dfstack[,i] >= tx[i],], 2, mean)
-  points(gravity_point, pch="*", cex=5, col="black")
+  gravity_point[,i] <- apply(gr[dfstack[,i] >= tx[i],], 2, mean)
+  points(gravity_point[1],gravity_point[2], pch="*", cex=5, col="black")
   
 }
 
@@ -585,30 +585,30 @@ plot(DK_poly, col=1, add=T)
 
 
 # if(Hotspot == "Nursery"){
-#   
+# 
 #   box1 <- drawPoly() #draws polygon in the Kattegat
 #   box2 <- drawPoly() #draws polygon in the upper part of Bornholm
 #   box3 <- drawPoly() #draws polygon in the lower part of Bornholm
-#   
+# 
 #   poly_box1 <- as(box1, "SpatialPolygonsDataFrame" )
 #   poly_box2 <- as(box2, "SpatialPolygonsDataFrame" )
 #   poly_box3 <- as(box3, "SpatialPolygonsDataFrame" )
-#   
+# 
 #   setwd("~/Data/Hotspots/Recruits")
-#   writeOGR(poly_box1, dsn = '.', layer = 'Recruits_box1', driver = "ESRI Shapefile")
-#   writeOGR(poly_box2, dsn = '.', layer = 'Recruits_box2', driver = "ESRI Shapefile")
+#   writeOGR(poly_box1, dsn = '.', layer = 'Recruits_feeding_box1', driver = "ESRI Shapefile")
+#   writeOGR(poly_box2, dsn = '.', layer = 'Recruits_feeding_box2', driver = "ESRI Shapefile")
 #   writeOGR(poly_box3, dsn = '.', layer = 'Recruits_box3', driver = "ESRI Shapefile")
-#   
+# 
 # 
 # } else if(Hotspot == "Spawners"){
-#   
+# 
 #   box1 <- drawPoly() #draws polygon in the Kattegat - However, this is already a closure area. so leave it out
 #   box2 <- drawPoly() #draws polygon in the WBS, close to Bornholm
-#   
-#   
+# 
+# 
 #   poly_box1 <- as(box1, "SpatialPolygonsDataFrame" )
 #   poly_box2 <- as(box2, "SpatialPolygonsDataFrame" )
-#   
+# 
 #   setwd("~/Data/Hotspots/Spawners")
 #   writeOGR(poly_box1, dsn = '.', layer = 'Spawners_box1', driver = "ESRI Shapefile")
 #   writeOGR(poly_box2, dsn = '.', layer = 'Spawners_box2', driver = "ESRI Shapefile")
