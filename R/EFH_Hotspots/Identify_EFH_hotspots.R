@@ -799,7 +799,7 @@ p2 <- ggplot(dtx, aes(x= "", y=tvalues)) +
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# 3) Plot the density distribution and show the selected area based on the treshold value
+# 3) Plot the density distribution and show the selected area based on the threshold value
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 dens <- density(Xaxis[,22]) #Select an arbitray example
