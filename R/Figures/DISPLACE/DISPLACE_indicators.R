@@ -13,7 +13,7 @@
 
 
 # The loglike file stores all results related to the biological, behavioral and economic indicators.
-# These files mimick the logbook files fromat - hence, 'loglike'
+# These files mimick the logbook files format - hence, 'loglike'
 
 
 # The script is divided into four parts:
@@ -960,6 +960,8 @@ if(general$case_study == "BalticSea"){
 }
 
 
+
+
 # 4.2) Define vessels, implicit & explicit populations & baseline scenario
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Here we specify explicitly for which fishery & fish population we want to
@@ -980,6 +982,7 @@ if(general$case_study=="BalticSea"){
   #********************************#
   
 }
+
 
 
 #  4.3) Calculate % over baseline
@@ -1632,11 +1635,13 @@ for (selected in sets){
 } # end for-loop on sets
 
 
+
+
 #  4.4) Make the boxplots
 #~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ## Define the figure
-FIG <- c("main", "suppl")[1] # main = figures displayed on main ms, suppl = figures displayed in the supplementray material
+FIG <- c("main", "suppl")[2] # main = figures displayed on main ms, suppl = figures displayed in the supplementray material
 
 ## Define indicators for supplementary material
 ## Note: figures in supplementary material only explore the landings and catches of other species
@@ -1678,13 +1683,13 @@ if(FIG == "main"){
   
 } else if(FIG == "suppl" & ISPPL == "catches"){
   
-  selected_variables <- c("fishing_based_cpue_1",
-                          #"fishing_based_cpue_2",
-                          "fishing_based_cpue_3",
-                          "fishing_based_cpue_11",
-                          "fishing_based_cpue_12",
-                          "fishing_based_cpue_22",
-                          "fishing_based_cpue_23",
+  selected_variables <- c("fishing_based_cpue_1", 
+                          #"fishing_based_cpue_2", 
+                          "fishing_based_cpue_3", 
+                          "fishing_based_cpue_11", 
+                          "fishing_based_cpue_12", 
+                          "fishing_based_cpue_22", 
+                          "fishing_based_cpue_23", 
                           "fishing_based_cpue_31",
                           "fishing_based_cpue_35")
   
@@ -1698,88 +1703,48 @@ sets <- c("_selected_set2_", "_selected_set3_")
 
 
 
+## Combine outputs from all vessels
+outcomes <- list()
+
 for (selected in sets){
   
-  outcomes <- read.table(file.path(general$main.path, general$namefolderinput, 
-                                   paste("outcomes_all_simus_relative_to_baseline_sce_",selected, ".txt", sep='')), header=TRUE, sep=";")
+  outcomes[[selected]] <- read.table(file.path(general$main.path, general$namefolderinput, 
+                                               paste("outcomes_all_simus_relative_to_baseline_sce_",selected, ".txt", sep='')), header=TRUE, sep=";")
   
   
   
   # add baseline at 0,0,0, etc.
-  baseline <- outcomes[outcomes$scenario == "scelgnbcouplingwclosure",]  # choose an arbitrary scenario from the scenario list (except not the one used as a baseline!!!)
+  baseline <- outcomes[[selected]][outcomes[[selected]]$scenario == "scelgnbcouplingwclosure",]  # choose an arbitrary scenario from the scenario list (except not the one used as a baseline!!!)
   baseline$ratio_percent <- 0
   #baseline$scenario <- "scebaseline"
   baseline$scenario <- a_baseline
-  outcomes <- rbind.data.frame(baseline, outcomes)
-  outcomes$scenario <- factor(outcomes$scenario)
+  outcomes[[selected]] <- rbind.data.frame(baseline, outcomes[[selected]])
+  outcomes[[selected]]$scenario <- factor(outcomes[[selected]]$scenario)
   
   
-  
-  # Select here the desired indicators (biological, economic and behavioral)
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  
-  # #If i want to select only info on cod, choose number "2" -> wbs cod ID in displace
-  # selected_variables <- c("feffort", #behavioral
-  #                         "seffort", #behavioral
-  #                         "nbtrip",  #behavioral
-  #                         "av_trip_duration", #behavioral
-  #                           
-  #                         "fishing_based_cpue", #biological
-  #                         "fishing_based_cpue_2", #biological
-  #                         "totland", #biological
-  #                         "totland_2", #WBS cod landings; biological indicator
-  #                           
-  #                         "revenue", #economic
-  #                         "npv", #economic
-  #                         #"av_vpuf_month", #economic
-  #                         "av_vpuf",
-  #                         "hoover")#economic
+  outcomes[[selected]]  <- outcomes[[selected]][outcomes[[selected]]$variable %in% selected_variables,]
   
   
-  ## Landings and catches for other species - Supplementary Material
-  # selected_variables <- c("totland_1",
-  #                         "totland_2",
-  #                         "totland_11",
-  #                         "totland_12",
-  #                         "totland_22",
-  #                         "totland_23",
-  #                         "totland_31",
-  #                         "totland_35")
-  #                          # "fishing_based_cpue_1",
-  #                          # "fishing_based_cpue_2",
-  #                          # "fishing_based_cpue_11",
-  #                          # "fishing_based_cpue_12",
-  #                          # "fishing_based_cpue_22",
-  #                          # "fishing_based_cpue_23",
-  #                          # "fishing_based_cpue_31",
-  #                          # "fishing_based_cpue_35")
-  
-  
-  
-  
-  outcomes           <- outcomes[outcomes$variable %in% selected_variables,]
-  
-  
-  outcomes$variable <- factor(outcomes$variable)
+  outcomes[[selected]]$variable <- factor(outcomes[[selected]]$variable)
   
   if(FIG == "main"){
-    outcomes$variable <- factor(outcomes$variable, levels=selected_variables, labels= c( "Fishing effort", #CARE!! Same ordering as above
-                                                                                         "Steaming effort", 
-                                                                                         "Number of trips",
-                                                                                         "Trip duration", 
-                                                                                         
-                                                                                         "Total catches",
-                                                                                         "Total landings",
-                                                                                         "Cod catches",
-                                                                                         "Cod landings",
-                                                                                         
-                                                                                         "Revenue",
-                                                                                         "NPV", 
-                                                                                         "VPUF",
-                                                                                         "Income inequality"))
+    outcomes[[selected]]$variable <- factor(outcomes[[selected]]$variable, levels=selected_variables, labels= c( "Fishing effort", #CARE!! Same ordering as above
+                                                                                                                 "Steaming effort", 
+                                                                                                                 "Number of trips",
+                                                                                                                 "Trip duration", 
+                                                                                                                 
+                                                                                                                 "Total catches",
+                                                                                                                 "Total landings",
+                                                                                                                 "Cod catches",
+                                                                                                                 "Cod landings",
+                                                                                                                 
+                                                                                                                 "Revenue",
+                                                                                                                 "NPV", 
+                                                                                                                 "VPUF",
+                                                                                                                 "Income inequality"))
     
   } else if(FIG == "suppl" & ISPPL == "landings"){
-    outcomes$variable <- factor(outcomes$variable, levels=selected_variables, labels= c(
+    outcomes[[selected]]$variable <- factor(outcomes[[selected]]$variable, levels=selected_variables, labels= c(
       "Landings cod21",
       #"Landings cod2224",
       "Landings cod2532",
@@ -1793,115 +1758,319 @@ for (selected in sets){
     
     
   } else if(FIG == "suppl" & ISPPL == "catches"){
-    outcomes$variable <- factor(outcomes$variable, levels=selected_variables, labels= c("CPUE cod21",
-                                                                                        #"CPUE cod2224",
-                                                                                        "CPUE cod2532",
-                                                                                        "CPUE her3a22",
-                                                                                        "CPUE her2532",
-                                                                                        "CPUE ple2123",
-                                                                                        "CPUE ple2432",
-                                                                                        "CPUE spr2232",
-                                                                                        "CPUE turbot2232"))
+    outcomes[[selected]]$variable <- factor(outcomes[[selected]]$variable, levels=selected_variables, labels= c("CPUE cod21",
+                                                                                                                #"CPUE cod2224",
+                                                                                                                "CPUE cod2532",
+                                                                                                                "CPUE her3a22",
+                                                                                                                "CPUE her2532",
+                                                                                                                "CPUE ple2123",
+                                                                                                                "CPUE ple2432",
+                                                                                                                "CPUE spr2232",
+                                                                                                                "CPUE turbot2232"))
     
     
   }
   
   
-  # CARE: needs to be the same as in the general settings in the start of the script!!!!
-  # selected_scenarios <-    c("scebaselinenoclosure",
-  #                             "scebaseline",
-  #                             "scenbcpcouplingnoclosure",
-  #                             "scenbcpcoupling",
-  #                             "scenbcpcouplingspw",
-  #                             "scenbcpcouplingrec")
   
   selected_scenarios <- dput(names(general$namesimu)) #scelgnbcouplingnoclosure, scenbcpcouplingnoclosure
   
   
-  # CARE: needs to be the same as in the general settings in the start of the script!!!!
-  # name_scenarios <- c("No closure", 
-  #                     "Standard spawning closure", 
-  #                     "Alternative spawning closure", 
-  #                     "Nursery closure"
-  #                    )                          
-  
   name_scenarios <- dput(the_scenarios1)
   
-  outcomes <- outcomes[outcomes$scenario %in%selected_scenarios,]
-  outcomes$scenario <- factor(outcomes$scenario)
-  outcomes$scenario <- factor(outcomes$scenario, levels = selected_scenarios, labels =  name_scenarios)
-  
-  #library(lattice)                            
-  #bwplot(ratio_percent~variable| scenario, data=outcomes)
+  outcomes[[selected]] <- outcomes[[selected]][outcomes[[selected]]$scenario %in%selected_scenarios,]
+  outcomes[[selected]]$scenario <- factor(outcomes[[selected]]$scenario)
+  outcomes[[selected]]$scenario <- factor(outcomes[[selected]]$scenario, levels = selected_scenarios, labels =  name_scenarios)
   
   
-  ## rename vessel selection for clearer understanding
-  vessels <- ifelse(selected == "_selected_set1_", "AllVessels",
-                    ifelse(selected == "_selected_set2_", "Gillnetters", "Trawlers"))
+  outcomes[[selected]]$Vessel <- factor(paste(selected))
   
   
-  #namefile       <- paste(paste("indicators_boxplot_persce_",selected, sep=""))
-  
-  if(FIG == "main"){
-    namefile       <- paste(paste("indicators_boxplot_persce_",vessels, sep=""))
-    
-  } else if(FIG == "suppl" & ISPPL == 'landings'){
-    namefile       <- paste(paste("SupplementaryMaterial","Biological_indicators", ISPPL, vessels, sep="_"))
-    
-  } else if(FIG == "suppl" & ISPPL == 'catches'){
-    namefile       <- paste(paste("SupplementaryMaterial","Biological_indicators",ISPPL, vessels, sep="_"))
-  }
-  
-  output.folder  <- file.path(general$main.path, general$namefolderinput)
-  the_dim        <- c(30, 10)
-  
-  png(filename=file.path(output.folder, paste(namefile, ".png", sep="" )),
-       width = the_dim[1], height = the_dim[2], 
-       units = "cm", pointsize = 12,  res=450)
-  
-  library(ggplot2)
-  library(dplyr)
-  
-  ## CHECK - Why did Francois recategorize these values?
-  #outcomes[outcomes$ratio_percent< -25, "ratio_percent"] <- -25
-  #outcomes[outcomes$ratio_percent>25, "ratio_percent"] <- 25
-  
-  
-  # p <- ggplot(outcomes[outcomes$ratio_percent>=-25 & outcomes$ratio_percent<=25,], aes(factor(variable), ratio_percent))  + geom_boxplot(outlier.shape=1)  + 
-  #   labs(x = "Indicators", y = "% ratio over the baseline") # + ylim(-20, 20) 
-  # print(
-  # #  p   + facet_wrap( ~ scenario, ncol=2, scales="free_y")    + theme_bw()+ # For DISPLACE vs LGNB-DISPLACE scenarios
-  #     p   + facet_wrap( ~ scenario, ncol=4)    + theme_bw()+ # For alternative closure scenarios
-  #     theme(axis.text.x = element_text(angle = 90, vjust=0.5,hjust=1), strip.text.x =element_text(size =10),  panel.grid.major = element_line(colour = grey(0.4),linetype = 3 ),
-  #           strip.background = element_blank(),
-  #           panel.border = element_rect(colour = "black")) + 
-  #     geom_abline(intercept=0, slope=0, color="#0073C2FF", lty=2, lwd=1)  + geom_boxplot(outlier.shape=NA)
-  # )
-  
-  
-  print(outcomes %>% 
-          # filter(!(scenario %in% "Baseline")
-          #                   & ratio_percent>=-25 &  ratio_percent<=25) %>% 
-          filter(!(scenario %in% "Baseline")) %>% 
-          #filter(!(scenario %in% c("Baseline", "Spawning area closure", "Nursery area closure","Old spawners area closure",  "Feeding area closure"))) %>% 
-          #filter(scenario %in% c("Seasonal Spawning Closure", "Spawning Area Closure + ITQ","Nursery Area Closure + ITQ", "Old Spawner Area Closure + ITQ", "Feeding Area Closure + ITQ")) %>% 
-          
-          #filter(scenario %in% c("Baseline", "Seasonal Spawning Closure", "Seasonal Spawning Closure")) %>% 
-          
-          ggplot( aes(factor(variable), ratio_percent))  +
-          geom_boxplot(outlier.shape=1)  + 
-          geom_boxplot(outlier.shape=NA) +
-          labs(x = "Indicators", y = "% ratio over the baseline") + # + ylim(-20, 20) 
-          facet_wrap( ~ scenario, ncol=5) + 
-          geom_abline(intercept=0, slope=0, color="#0073C2FF", lty=2, lwd=1)  +
-          theme_bw()+ # For alternative closure scenarios
-          theme(axis.text.x = element_text(angle = 90, vjust=0.5,hjust=1), 
-                strip.text.x =element_text(size =10),  
-                panel.grid.major = element_line(colour = grey(0.4),linetype = 3 ),
-                strip.background = element_blank(),
-                panel.border = element_rect(colour = "black")) 
-  )
-  dev.off()
-  
-} # end FOR-loop over sets
+}
 
+
+
+## Bind list into single data frame
+outcomes2 <- do.call('rbind', outcomes)
+
+
+## rename vessel selection for clearer understanding
+outcomes2$Vessel <- ifelse(outcomes2$Vessel == "_selected_set1_", "AllVessels",
+                           ifelse(outcomes2$Vessel == "_selected_set2_", "Gillnetters", "Trawlers"))
+
+
+
+
+# Go for the plots
+#~~~~~~~~~~~~~~~~~~~
+colnames(outcomes2)[3] <- "Scenario" #For plotting
+
+
+## By indicators
+if(FIG == 'main'){
+outcomes2 %>% 
+  filter(!(Scenario %in% "Baseline")) %>% 
+  ggplot( aes(factor(Vessel), ratio_percent, fill = Scenario))  +
+  geom_boxplot(outlier.shape=1) +
+  labs(x = "Indicators", y = "Ratio over the baseline (%)") + # + ylim(-20, 20) 
+  facet_wrap( . ~ variable, ncol=4, scales = "free") + 
+  geom_abline(intercept=0, slope=0, color="darkorange", lty=2, lwd=1)  +
+  scale_fill_manual(values = c(pal_jco("default")(8)[c(3, 5:6,2,7)])) +
+  guides(fill=guide_legend(ncol=2)) +
+  theme_bw()+ 
+  theme(axis.text.x = element_text(size = 13), 
+        axis.text.y = element_text(size = 13),
+        axis.title.y = element_text(size = 15, face ='bold',margin = margin(t = 0, r = 20, b = 0, l = 0)),
+        axis.title.x = element_blank(),
+        
+        legend.title = element_text(face = 'bold', size = 15),
+        legend.text = element_text(size = 14),
+        
+        strip.text.x = element_text(size = 15),  
+        
+        panel.grid.major = element_line(colour = grey(0.4),linetype = 3 ),
+        strip.background = element_blank(),
+        panel.border = element_rect(colour = "black"),
+        legend.position = 'bottom') 
+
+  OUTDIR <- ("~/Desktop/Review_FR/R2/Figures/DISPLACE/Indicators/")
+  OUTFILE <- paste(OUTDIR, "Indicators_",paste(FIG,ISPPL, sep="_"),".png",sep ="")
+  ggsave(OUTFILE, width = 30, height = 25, units = 'cm', dpi = 300 )  
+  
+  
+} else if(FIG == 'suppl'){
+  
+  outcomes2 %>% 
+    filter(!(Scenario %in% "Baseline") & 
+             !(variable %in% c("CPUE cod21","CPUE cod25", "CPUE her2532","CPUE turbot2232",
+                               "Landings cod21","Landings cod25", "Landings her2532","Landings tur2232"))) %>% 
+    ggplot( aes(factor(Vessel), ratio_percent, fill = Scenario))  +
+    geom_boxplot(outlier.shape=1) +
+    labs(x = "Indicators", y = "Ratio over the baseline (%)") + # + ylim(-20, 20) 
+    facet_wrap( . ~ variable, ncol=4, scales = "free") + 
+    geom_abline(intercept=0, slope=0, color="darkorange", lty=2, lwd=1)  +
+    scale_fill_manual(values = c(pal_jco("default")(8)[c(3, 5:6,2,7)])) +
+    guides(fill=guide_legend(ncol=2)) +
+    theme_bw()+ 
+    theme(axis.text.x = element_text(size = 13), 
+          axis.text.y = element_text(size = 13),
+          axis.title.y = element_text(size = 15, face ='bold',margin = margin(t = 0, r = 20, b = 0, l = 0)),
+          axis.title.x = element_blank(),
+          
+          legend.title = element_text(face = 'bold', size = 15),
+          legend.text = element_text(size = 14),
+          
+          strip.text.x = element_text(size = 15),  
+          
+          panel.grid.major = element_line(colour = grey(0.4),linetype = 3 ),
+          strip.background = element_blank(),
+          panel.border = element_rect(colour = "black"),
+          legend.position = 'bottom') 
+  
+  OUTDIR <- ("~/Desktop/Review_FR/R2/Figures/DISPLACE/Indicators/")
+  OUTFILE <- paste(OUTDIR, "Indicators_",paste(FIG,ISPPL, sep="_"),".png",sep ="")
+  ggsave(OUTFILE, width = 25, height = 10, units = 'cm', dpi = 300 )  
+  
+}
+
+
+
+
+
+## By scenarios
+# levels(outcomes2$scenario)[levels(outcomes2$scenario) == "Seasonal Spawning Closure"] <- "SSC"
+# levels(outcomes2$scenario)[levels(outcomes2$scenario) == "Spawning Area Closure"] <- "SAC"
+# levels(outcomes2$scenario)[levels(outcomes2$scenario) == "Old Spawner Area Closure"] <- "OSAC"
+# levels(outcomes2$scenario)[levels(outcomes2$scenario) == "Nursery Area Closure"] <- "NAC"
+# levels(outcomes2$scenario)[levels(outcomes2$scenario) == "Feeding Area Closure"] <- "FAC"
+# 
+# outcomes2 %>% 
+#           filter(!(scenario %in% "Baseline")) %>% 
+#           ggplot( aes(factor(variable), ratio_percent, fill = Vessel))  +
+#           geom_boxplot(outlier.shape=1) +
+#           labs(x = "Indicators", y = "Ratio over the baseline (%)") + # + ylim(-20, 20) 
+#           facet_wrap( . ~ scenario, ncol=5) + 
+#           geom_abline(intercept=0, slope=0, color="#0073C2FF", lty=2, lwd=1)  +
+#           scale_fill_manual(values = c("gray80", "lightskyblue3")) +
+#           # geom_abline(intercept=0, slope=0, color="darkorange3", lty=2, lwd=1)  +
+#           # scale_fill_manual(values = c("gray85", "cadetblue3")) +
+#           theme_bw()+ # For alternative closure scenarios
+#           theme(axis.text.x = element_text(angle = 90, vjust=0.5, hjust=1, size = 20), 
+#                 axis.title.y = element_text(size = 22, face ='bold',margin = margin(t = 0, r = 20, b = 0, l = 0)),
+#                 axis.title.x = element_blank(),
+#                 axis.text = element_text(size=16),
+#                 
+#                 legend.title = element_text(face = 'bold', size = 15),
+#                 legend.text = element_text(size = 14),
+#                 
+#                 strip.text.x = element_text(size = 15),  
+#                 
+#                 panel.grid.major = element_line(colour = grey(0.4),linetype = 3 ),
+#                 strip.background = element_blank(),
+#                 panel.border = element_rect(colour = "black"),
+#                 legend.position = 'bottom') 
+
+
+
+
+
+
+
+
+
+
+########################################################
+###### OLD code for plotting  #####
+# for (selected in sets){
+#   
+#   outcomes <- read.table(file.path(general$main.path, general$namefolderinput, 
+#                                    paste("outcomes_all_simus_relative_to_baseline_sce_",selected, ".txt", sep='')), header=TRUE, sep=";")
+#   
+#   
+#   
+#   # add baseline at 0,0,0, etc.
+#   baseline <- outcomes[outcomes$scenario == "scelgnbcouplingwclosure",]  # choose an arbitrary scenario from the scenario list (except not the one used as a baseline!!!)
+#   baseline$ratio_percent <- 0
+#   #baseline$scenario <- "scebaseline"
+#   baseline$scenario <- a_baseline
+#   outcomes <- rbind.data.frame(baseline, outcomes)
+#   outcomes$scenario <- factor(outcomes$scenario)
+#   
+#   
+#   
+#  
+#   
+#   outcomes           <- outcomes[outcomes$variable %in% selected_variables,]
+#   
+#   
+#   outcomes$variable <- factor(outcomes$variable)
+#   
+#   if(FIG == "main"){
+#     outcomes$variable <- factor(outcomes$variable, levels=selected_variables, labels= c( "Fishing effort", #CARE!! Same ordering as above
+#                                                                                          "Steaming effort", 
+#                                                                                          "Number of trips",
+#                                                                                          "Trip duration", 
+#                                                                                          
+#                                                                                          "Total catches",
+#                                                                                          "Total landings",
+#                                                                                          "Cod catches",
+#                                                                                          "Cod landings",
+#                                                                                          
+#                                                                                          "Revenue",
+#                                                                                          "NPV", 
+#                                                                                          "VPUF",
+#                                                                                          "Income inequality"))
+#     
+#   } else if(FIG == "suppl" & ISPPL == "landings"){
+#     outcomes$variable <- factor(outcomes$variable, levels=selected_variables, labels= c(
+#       "Landings cod21",
+#       #"Landings cod2224",
+#       "Landings cod2532",
+#       "Landings her3a22",
+#       "Landings her2532",
+#       "Landings ple2123",
+#       "Landings ple2432",
+#       "Landings spr2232",
+#       "Landings tur2232"))
+#     
+#     
+#     
+#   } else if(FIG == "suppl" & ISPPL == "catches"){
+#     outcomes$variable <- factor(outcomes$variable, levels=selected_variables, labels= c("CPUE cod21",
+#                                                                                         #"CPUE cod2224",
+#                                                                                         "CPUE cod2532",
+#                                                                                         "CPUE her3a22",
+#                                                                                         "CPUE her2532",
+#                                                                                         "CPUE ple2123",
+#                                                                                         "CPUE ple2432",
+#                                                                                         "CPUE spr2232",
+#                                                                                         "CPUE turbot2232"))
+#     
+#     
+#   }
+#   
+# 
+#   
+#   selected_scenarios <- dput(names(general$namesimu)) #scelgnbcouplingnoclosure, scenbcpcouplingnoclosure
+#   
+# 
+#   name_scenarios <- dput(the_scenarios1)
+#   
+#   outcomes <- outcomes[outcomes$scenario %in%selected_scenarios,]
+#   outcomes$scenario <- factor(outcomes$scenario)
+#   outcomes$scenario <- factor(outcomes$scenario, levels = selected_scenarios, labels =  name_scenarios)
+#   
+#   #library(lattice)                            
+#   #bwplot(ratio_percent~variable| scenario, data=outcomes)
+#   
+#   
+#   ## rename vessel selection for clearer understanding
+#   vessels <- ifelse(selected == "_selected_set1_", "AllVessels",
+#                     ifelse(selected == "_selected_set2_", "Gillnetters", "Trawlers"))
+#   
+#   
+#   #namefile       <- paste(paste("indicators_boxplot_persce_",selected, sep=""))
+#   
+#   if(FIG == "main"){
+#     namefile       <- paste(paste("indicators_boxplot_persce_",vessels, sep=""))
+#     
+#   } else if(FIG == "suppl" & ISPPL == 'landings'){
+#     namefile       <- paste(paste("SupplementaryMaterial","Biological_indicators", ISPPL, vessels, sep="_"))
+#     
+#   } else if(FIG == "suppl" & ISPPL == 'catches'){
+#     namefile       <- paste(paste("SupplementaryMaterial","Biological_indicators",ISPPL, vessels, sep="_"))
+#   }
+#   
+#   output.folder  <- file.path(general$main.path, general$namefolderinput)
+#   the_dim        <- c(30, 10)
+#   
+#   png(filename=file.path(output.folder, paste(namefile, ".png", sep="" )),
+#        width = the_dim[1], height = the_dim[2], 
+#        units = "cm", pointsize = 12,  res=450)
+#   
+#   library(ggplot2)
+#   library(dplyr)
+#   
+#   ## CHECK - Why did Francois recategorize these values?
+#   #outcomes[outcomes$ratio_percent< -25, "ratio_percent"] <- -25
+#   #outcomes[outcomes$ratio_percent>25, "ratio_percent"] <- 25
+#   
+#   
+#   # p <- ggplot(outcomes[outcomes$ratio_percent>=-25 & outcomes$ratio_percent<=25,], aes(factor(variable), ratio_percent))  + geom_boxplot(outlier.shape=1)  + 
+#   #   labs(x = "Indicators", y = "% ratio over the baseline") # + ylim(-20, 20) 
+#   # print(
+#   # #  p   + facet_wrap( ~ scenario, ncol=2, scales="free_y")    + theme_bw()+ # For DISPLACE vs LGNB-DISPLACE scenarios
+#   #     p   + facet_wrap( ~ scenario, ncol=4)    + theme_bw()+ # For alternative closure scenarios
+#   #     theme(axis.text.x = element_text(angle = 90, vjust=0.5,hjust=1), strip.text.x =element_text(size =10),  panel.grid.major = element_line(colour = grey(0.4),linetype = 3 ),
+#   #           strip.background = element_blank(),
+#   #           panel.border = element_rect(colour = "black")) + 
+#   #     geom_abline(intercept=0, slope=0, color="#0073C2FF", lty=2, lwd=1)  + geom_boxplot(outlier.shape=NA)
+#   # )
+#   
+#   
+#   print(outcomes %>% 
+#           # filter(!(scenario %in% "Baseline")
+#           #                   & ratio_percent>=-25 &  ratio_percent<=25) %>% 
+#           filter(!(scenario %in% "Baseline")) %>% 
+#           #filter(!(scenario %in% c("Baseline", "Spawning area closure", "Nursery area closure","Old spawners area closure",  "Feeding area closure"))) %>% 
+#           #filter(scenario %in% c("Seasonal Spawning Closure", "Spawning Area Closure + ITQ","Nursery Area Closure + ITQ", "Old Spawner Area Closure + ITQ", "Feeding Area Closure + ITQ")) %>% 
+#           
+#           #filter(scenario %in% c("Baseline", "Seasonal Spawning Closure", "Seasonal Spawning Closure")) %>% 
+#           
+#           ggplot( aes(factor(variable), ratio_percent))  +
+#           geom_boxplot(outlier.shape=1)  + 
+#           geom_boxplot(outlier.shape=NA) +
+#           labs(x = "Indicators", y = "% ratio over the baseline") + # + ylim(-20, 20) 
+#           facet_wrap( ~ scenario, ncol=5) + 
+#           geom_abline(intercept=0, slope=0, color="#0073C2FF", lty=2, lwd=1)  +
+#           theme_bw()+ # For alternative closure scenarios
+#           theme(axis.text.x = element_text(angle = 90, vjust=0.5,hjust=1), 
+#                 strip.text.x =element_text(size =10),  
+#                 panel.grid.major = element_line(colour = grey(0.4),linetype = 3 ),
+#                 strip.background = element_blank(),
+#                 panel.border = element_rect(colour = "black")) 
+#   )
+#   dev.off()
+#   
+# } # end FOR-loop over sets
+# 
