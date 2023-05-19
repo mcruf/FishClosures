@@ -316,7 +316,6 @@ allsim %>%
   #scale_fill_manual(values = c(pal_jco("default")(8)[c(2,3,5:6,4,7)])) +
   #scale_fill_manual(values = c(pal_jco("default")(8)[c(4,2,3,5:6,7)])) +
   scale_fill_manual(values = c(pal_jco("default")(8)[c(4,3, 5:6,2,7)])) +
-  
   facet_grid(Scenario ~ Year) +
   #ggtitle(scenario) +
   theme_bw() +

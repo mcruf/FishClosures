@@ -29,6 +29,17 @@
 # These are used in all other post-processing scripts, and therefore extra 
 # care needs to be set with the ordering of the scenarios.
 
+# NOTE;
+## Some simulations provided very unrealistic patterns, where the stock collapsed
+## suddenly at a random time even when it showed an increased trend. This can be
+## seen by plotting the SSB along time (see SSB_along_time.R script). We have to remove
+## these simulations to ensure unbiased results.
+## Simulations to remove:
+## - Seasonal spawning closure - simu 14 and 17
+## - Spawning area closure - simu 14
+## - Feeding closure - simu 7
+
+
 
 
 #~~~~~~~~~~~~~~~~~~~~
@@ -42,21 +53,12 @@ general$case_study <- "BalticSea" #change name according to application (e.g., m
 ## Specify directories to DISPLACE application & simulation outputs  
 if(.Platform$OS.type == "unix") {
   
-  # general$main.path         <- file.path("~","DISPLACE_outputs")                                                                                                   
-  # general$main.path.param   <- file.path("~","ibm_vessels","WBSsimu",paste("DISPLACE_input_",general$case_study, sep=""))
-  # general$main.path.ibm     <- file.path("~","ibm_vessels","WBSsimu",paste("DISPLACE_input_", general$case_study, sep='')) 
   
-  # general$main.path         <- file.path("~", "DISPLACE_outputs")   
-  # general$main.path.igraph  <- file.path("~","ibm_vessels","WBSsimu", paste("DISPLACE_input_",general$case_study, sep=""), "graphsspe")
-  # general$main.path.param   <- file.path("~","ibm_vessels","WBSsimu", paste("DISPLACE_input_gis_",general$case_study, sep=""))
-  # general$main.path.ibm     <- file.path("~","ibm_vessels","WBSsimu", paste("DISPLACE_input_", general$case_study, sep=''))
-  # 
   general$main.path         <- file.path("~","Desktop","Review_FR", "R2","Results", "DISPLACE", "DISPLACE_outputs")   
   general$main.path.igraph  <- file.path("~","Desktop","WBSsimu", paste("DISPLACE_input_",general$case_study, sep=""), "graphsspe")
   general$main.path.param   <- file.path("~","Desktop","WBSsimu", paste("DISPLACE_input_gis_",general$case_study, sep=""))
   general$main.path.ibm     <- file.path("~","Desktop","WBSsimu", paste("DISPLACE_input_", general$case_study, sep=''))
-  
-  
+
   # do not forget to install the R packages on the qrsh interactive node linux platform, i.e. R > install.packages("data.table"), etc.
   # (and possibly kill the current jobs on HPC with the command qselect -u $USER | xargs qdel)
   # submit the shell to HPC with the command qsub ./IBM_processoutput_plots_for_loglike.sh
@@ -76,22 +78,22 @@ if(general$case_study == "BalticSea"){
   
   
   ### Specify here the folder names with the outputs of the simulations
-  general$namefolderoutput  <- c(     "scelgnbcouplingnoclosure",
-                                      "scelgnbcouplingwclosure",
-                                      "scelgnbcouplingspwclosure",
-                                      "scelgnbcouplingoldspwclosure",
-                                      "scelgnbcouplingnurseclosure",
-                                      "scelgnbcouplingfeedclosure"
+  general$namefolderoutput  <- c("scelgnbcouplingnoclosure",
+                                 "scelgnbcouplingwclosure",
+                                 "scelgnbcouplingspwclosure",
+                                 "scelgnbcouplingoldspwclosure",
+                                 "scelgnbcouplingnurseclosure",
+                                 "scelgnbcouplingfeedclosure"
   ) 
   
-  ### Specify the names of the simulaions & with the number of simulations that were conducted
-  general$namesimu           <- list(
-    "scelgnbcouplingnoclosure"  =   paste("simu", c(1:20), sep=''),
-    "scelgnbcouplingwclosure" =   paste("simu", c(1:20), sep=''),
-    "scelgnbcouplingspwclosure"  =   paste("simu", c(1:20), sep=''),
-    "scelgnbcouplingoldspwclosure" =   paste("simu", c(1:20), sep=''),
-    "scelgnbcouplingnurseclosure"  =   paste("simu", c(1:20), sep=''),
-    "scelgnbcouplingfeedclosure"  =   paste("simu", c(1:20), sep='')
+  ### Specify the names of the simulations & with the number of simulations that were conducted
+  general$namesimu  <- list("scelgnbcouplingnoclosure"     =   paste("simu", c(1:20), sep=''), # Baseline
+                            #"scelgnbcouplingwclosure"      =   paste("simu", c(1:20), sep=''), # Seasonal spawning closure
+                            "scelgnbcouplingwclosure"      =   paste("simu", c(1:13,15:16,18:20), sep=''), # Seasonal spawning closure -- remove odd simulation (n.14 & 17)
+                            "scelgnbcouplingspwclosure"    =   paste("simu", c(1:13,15:20), sep=''), # Spawning area closure -- remove odd simulation (no. 14)
+                            "scelgnbcouplingoldspwclosure" =   paste("simu", c(1:20), sep=''), # Old spawner closure
+                            "scelgnbcouplingnurseclosure"  =   paste("simu", c(1:20), sep=''), # Nursery closure
+                            "scelgnbcouplingfeedclosure"   =   paste("simu", c(1:6,8:20), sep='')  # Feeding closure -- remove odd simulation (no. 7)
   ) 
   
   
@@ -966,7 +968,7 @@ if(general$case_study == "BalticSea"){
 
 if(general$case_study=="BalticSea"){
   
-  sets <- c("_selected_set1_", "_selected_set2_", "_selected_set3_")
+  sets <- c("_selected_set1_", "_selected_set2_", "_selected_set3_") # All, gillnetters, trawlers
   
   implicit_pops <- c(0, 3, 4, 5, 6, 7, 8, 9, 10, 13, 14, 15, 16, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28, 29, 30, 32, 33, 34, 36)
   explicit_pops <- c(0:36)[-(implicit_pops+1)] 
@@ -1691,8 +1693,8 @@ if(FIG == "main"){
 
 
 ## Define the vessels (set1 = all vessels, set2 = gillnetters, set3 = trawlers)
-sets <- c("_selected_set1_", "_selected_set2_", "_selected_set3_")
-
+#sets <- c("_selected_set1_", "_selected_set2_", "_selected_set3_")
+sets <- c("_selected_set2_", "_selected_set3_")
 
 
 
@@ -1701,13 +1703,6 @@ for (selected in sets){
   outcomes <- read.table(file.path(general$main.path, general$namefolderinput, 
                                    paste("outcomes_all_simus_relative_to_baseline_sce_",selected, ".txt", sep='')), header=TRUE, sep=";")
   
-  ## CAUTION: (not the same levels when reading or when using directly the obj in the env)
-  #levels (outcomes$scenario) <-  c( 'scerestrictionontrawling10eez',
-  #                                  'scerestrictionontrawling10eez10lesstrip',
-  #                                  'scerestrictionontrawling10hab',
-  #                                  'scerestrictionontrawling15eez',
-  #                                  'scerestrictionontrawling15hab',
-  #                                  'scerestrictionontrawling1eez','scerestrictionontrawling1hab','scerestrictionontrawling20eez','scerestrictionontrawling20eez20lesstrip','scerestrictionontrawling20hab','scerestrictionontrawling25eez','scerestrictionontrawling25hab','scerestrictionontrawling30eez','scerestrictionontrawling30eez30lesstrip','scerestrictionontrawling30eezH','scerestrictionontrawling30hab','scerestrictionontrawling50eez','scerestrictionontrawling50eezH','scerestrictionontrawling50hab','scerestrictionontrawling5eez','scerestrictionontrawling5hab','scerestrictionsonnets','scerestrictionsonnetsandtrawl15eez','scerestrictionsonnetsandtrawl15hab','scerestrictionsonnetsandtrawl20eez','scerestrictionsonnetsandtrawl20hab','scerestrictionsonnetsandtrawl25eez','scerestrictionsonnetsandtrawl25hab','scerestrictionsonnetsandtrawl30eez','scerestrictionsonnetsandtrawl30hab')
   
   
   # add baseline at 0,0,0, etc.
