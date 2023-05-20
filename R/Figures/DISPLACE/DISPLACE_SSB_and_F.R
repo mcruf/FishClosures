@@ -13,6 +13,18 @@ library(ggplot2)
 
 
 
+# NOTE;
+## Some simulations provided very unrealistic patterns, where the stock collapsed
+## suddenly at a random time even when it showed an increased trend. This can be
+## seen by plotting the SSB along time (see SSB_along_time.R script). We have to remove
+## these simulations to ensure unbiased results.
+## Simulations to remove:
+## - Seasonal spawning closure - simu 14 and 17
+## - Spawning area closure - simu 14
+## - Feeding closure - simu 7
+
+
+
 #~~~~~~~~~~~~~~~~~~~~
 ## Part 1) SSB/SSBinit
 #~~~~~~~~~~~~~~~~~~~~
@@ -23,22 +35,12 @@ general$case_study <- "BalticSea" #change name according to application (e.g., m
 
 ## Specify directories to DISPLACE application & simulation outputs  
 if(.Platform$OS.type == "unix") {
-  
-  # general$main.path         <- file.path("~","DISPLACE_outputs")                                                                                                   
-  # general$main.path.param   <- file.path("~","ibm_vessels","WBSsimu",paste("DISPLACE_input_",general$case_study, sep=""))
-  # general$main.path.ibm     <- file.path("~","ibm_vessels","WBSsimu",paste("DISPLACE_input_", general$case_study, sep='')) 
-  
-  # general$main.path         <- file.path("~", "DISPLACE_outputs")   
-  # general$main.path.igraph  <- file.path("~","ibm_vessels","WBSsimu", paste("DISPLACE_input_",general$case_study, sep=""), "graphsspe")
-  # general$main.path.param   <- file.path("~","ibm_vessels","WBSsimu", paste("DISPLACE_input_gis_",general$case_study, sep=""))
-  # general$main.path.ibm     <- file.path("~","ibm_vessels","WBSsimu", paste("DISPLACE_input_", general$case_study, sep=''))
-  # 
+    
   general$main.path         <- file.path("~","Desktop","Review_FR", "R2","Results", "DISPLACE", "DISPLACE_outputs")   
   general$main.path.igraph  <- file.path("~","Desktop","WBSsimu", paste("DISPLACE_input_",general$case_study, sep=""), "graphsspe")
   general$main.path.param   <- file.path("~","Desktop","WBSsimu", paste("DISPLACE_input_gis_",general$case_study, sep=""))
   general$main.path.ibm     <- file.path("~","Desktop","WBSsimu", paste("DISPLACE_input_", general$case_study, sep=''))
-  
-  
+
   # do not forget to install the R packages on the qrsh interactive node linux platform, i.e. R > install.packages("data.table"), etc.
   # (and possibly kill the current jobs on HPC with the command qselect -u $USER | xargs qdel)
   # submit the shell to HPC with the command qsub ./IBM_processoutput_plots_for_loglike.sh
@@ -58,28 +60,23 @@ if(general$case_study == "BalticSea"){
   
   
   ### Specify here the folder names with the outputs of the simulations
-  general$namefolderoutput  <- c(     "scelgnbcouplingnoclosure",
-                                      #"scelgnbcouplingnoclosurenoitq",
-                                      "scelgnbcouplingwclosure",
-                                      #"scelgnbcouplingwclosurenoitq",
-                                      "scelgnbcouplingspwclosure",
-                                      "scelgnbcouplingoldspwclosure",
-                                      "scelgnbcouplingnurseclosure",
-                                      "scelgnbcouplingfeedclosure"
+  general$namefolderoutput  <- c("scelgnbcouplingnoclosure",
+                                 "scelgnbcouplingwclosure",
+                                 "scelgnbcouplingspwclosure",
+                                 "scelgnbcouplingoldspwclosure",
+                                 "scelgnbcouplingnurseclosure",
+                                 "scelgnbcouplingfeedclosure"
   ) 
   
   ### Specify the names of the simulaions & with the number of simulations that were conducted
-  general$namesimu           <- list(
-    "scelgnbcouplingnoclosure"  =   paste("simu", c(1:20), sep=''),
-   # "scelgnbcouplingnoclosurenoitq"  =   paste("simu", c(1:20), sep=''),
-    "scelgnbcouplingwclosure" =   paste("simu", c(1:20), sep=''),
-    #"scelgnbcouplingwclosurenoitq"  =   paste("simu", c(1:20), sep=''),
-    "scelgnbcouplingspwclosure"  =   paste("simu", c(1:20), sep=''),
-    "scelgnbcouplingoldspwclosure" =   paste("simu", c(1:20), sep=''),
-   "scelgnbcouplingnurseclosure"  =   paste("simu", c(1:20), sep=''),
-    "scelgnbcouplingfeedclosure"  =   paste("simu", c(1:20), sep='')
+  general$namesimu  <- list("scelgnbcouplingnoclosure"     =   paste("simu", c(1:20), sep=''), # Baseline
+                            #"scelgnbcouplingwclosure"      =   paste("simu", c(1:20), sep=''), # Seasonal spawning closure
+                            "scelgnbcouplingwclosure"      =   paste("simu", c(1:13,15:16,18:20), sep=''), # Seasonal spawning closure -- remove odd simulation (n.14 & 17)
+                            "scelgnbcouplingspwclosure"    =   paste("simu", c(1:13,15:20), sep=''), # Spawning area closure -- remove odd simulation (no. 14)
+                            "scelgnbcouplingoldspwclosure" =   paste("simu", c(1:20), sep=''), # Old spawner closure
+                            "scelgnbcouplingnurseclosure"  =   paste("simu", c(1:20), sep=''), # Nursery closure
+                            "scelgnbcouplingfeedclosure"   =   paste("simu", c(1:6,8:20), sep='')  # Feeding closure -- remove odd simulation (no. 7)
   ) 
-  
   
   ### Rename the scenarios with desired name - NOTE: Needs to be in the same order as above
   the_scenarios1 <-  c("Baseline",
@@ -93,8 +90,6 @@ if(general$case_study == "BalticSea"){
   )
   
 }
-
-
 
 
 
@@ -126,9 +121,8 @@ for(sce in selected_scenarios) {
 
 
 
-outcome_firsty <- res[res$tstep==8761,]  
-#outcome_lasty <- res[res$tstep==35065,]  
-outcome_lasty <- res[res$tstep==96433,]  
+outcome_firsty <- res[res$tstep==8761,]  #First year
+outcome_lasty <- res[res$tstep==96433,]  #Last year
 outcome <- merge(outcome_firsty, outcome_lasty, 
                  by.x=c('stk', 'sce', 'simu'), 
                  by.y=c('stk', 'sce', 'simu'))
@@ -137,9 +131,9 @@ outcome$"F/Finit" <- outcome$Fbar.y/outcome$Fbar.x
 outcome$"SSB/SSBinit" <- outcome$SSB_kg.y/outcome$SSB_kg.x
 
 
-
 outcome$sce <- factor(outcome$sce)
 outcome$sce <- factor(outcome$sce, levels=selected_scenarios, labels=  the_scenarios1)
+
 
 # put in long format
 df1 <- cbind.data.frame(outcome[,c('stk','sce','simu','F/Finit')], var="F/Finit")
@@ -150,16 +144,15 @@ out <- rbind.data.frame(df1,df2)
 
 
 # SSB, F and whatever 
-the_dim        <- c(2400, 2400)
-# namefile       <- paste0("responsecurves_bio_laty_",selected)
-namefile       <- paste0("responsecurves_bio_laty_",selected_scenarios)
-output.folder  <- file.path(general$main.path, general$namefolderinput)
-tiff(filename=file.path(output.folder, paste(namefile, ".tiff", sep="" )),
-     width = the_dim[1], height = the_dim[2],
-     units = "px", pointsize = 12,  res=450, compression=c("lzw"))
+# the_dim        <- c(2400, 2400)
+# # namefile       <- paste0("responsecurves_bio_laty_",selected)
+# namefile       <- paste0("responsecurves_bio_laty_",selected_scenarios)
+# output.folder  <- file.path(general$main.path, general$namefolderinput)
+# tiff(filename=file.path(output.folder, paste(namefile, ".tiff", sep="" )),
+#      width = the_dim[1], height = the_dim[2],
+#      units = "px", pointsize = 12,  res=450, compression=c("lzw"))
 
 
-library(ggplot2)
 
 ## Remove some odd outliers
 out2 <- out %>% filter(stk == 2 & var == 'SSB/SSBinit') %>% filter(value < 5)
@@ -168,44 +161,89 @@ out2b <- out %>% filter(stk == 2 & var == 'F/Finit') %>% filter(value < 1.5)
 out3 <- rbind(out2, out2b)
 
 
-p <- 
-  #out3 %>% filter(stk == 2) %>%
-  out3 %>% filter(stk == 2 & !(sce %in% "Baseline")) %>%
+## Recode levels for better readability
+levels(out3$sce)[levels(out3$sce) == "Seasonal Spawning Closure"] <- "SSC"
+levels(out3$sce)[levels(out3$sce) == "Spawning Area Closure"] <- "SAC"
+levels(out3$sce)[levels(out3$sce) == "Old Spawner Area Closure"] <- "OSAC"
+levels(out3$sce)[levels(out3$sce) == "Nursery Area Closure"] <- "NAC"
+levels(out3$sce)[levels(out3$sce) == "Feeding Area Closure"] <- "FAC"
+
+
+out3 %>% 
+  filter(stk == 2) %>%
+  #out3 %>% filter(stk == 2 & !(sce %in% "Baseline")) %>%
   ggplot(aes(x=sce, y=value, fill=var,alpha=var))  + 
   geom_boxplot(outlier.shape=NA)  +
   labs(x = "Scenario", y = "Value")  + 
-  facet_wrap( ~ var, scales="free") + 
-  #ylim(0, 1) + #For all other scenarios
-  #ylim(0, 0.45) + # For DISPLACE vs. DISPLACE-LGNB scenario
-  scale_fill_manual(values=c("#69b3a2", "grey")) +
+  facet_wrap( ~ var, scales="free_y", ncol =1) + 
+  #scale_fill_manual(values=c("#69b3a2", "grey")) +
+  scale_fill_manual(values=c("gray85", "darkslategray4")) +
+  
   scale_alpha_manual(values=c(0.8,0.8)) +
-#scale_fill_discrete(name = "", labels = c("F/Finit", "SSB/SSBinit"))
     theme_bw()+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1,size=18), 
-          axis.text.y = element_text(size=18),
+    theme(axis.text.x = element_text(size=21), 
+          axis.text.y = element_text(size=21),
           axis.title.x = element_blank(),
-          axis.title.y = element_text(size=18),
-          strip.text.x = element_blank(),  
+          axis.title.y = element_text(size=21),
+          strip.text.x = element_text(size = 18, face = 'bold'),
           panel.grid.major = element_line(colour = grey(0.4),linetype =3 ),
           strip.background = element_blank(),
           
           #legend.position="bottom",
-          legend.title = element_blank(),
-          legend.text = element_text(size=15),
+          # legend.title = element_blank(),
+          # legend.text = element_text(size=15),
+          legend.position = "none",
           
+          # legend.position = c(.95, .95),
+          # legend.justification = c("right", "top"),
+          # legend.box.just = "right",
+          # legend.margin = margin(6, 6, 6, 6),
           
-          legend.position = c(.95, .95),
-          legend.justification = c("right", "top"),
-          legend.box.just = "right",
-          legend.margin = margin(6, 6, 6, 6),
-          
-          panel.border = element_rect(colour = "black")) +
-    geom_abline(intercept=0, slope=0, color="grey", lty=2)  + 
-    geom_boxplot(outlier.shape=NA) 
+          panel.border = element_rect(colour = "black")) 
+
+
+OUTDIR <- ("~/Desktop/Review_FR/R2/Figures/DISPLACE/Indicators/")
+OUTFILE <- paste(OUTDIR, "SSB_and_F_plot",".png",sep ="")
+ggsave(OUTFILE, width = 20, height = 25, units = 'cm', dpi = 300 )  
 
 
 
-dev.off()
+
+out3 %>% 
+  filter(stk == 2 & !(sce %in% "Baseline") & var == 'F/Finit') %>%
+  ggplot(aes(x=sce, y=value, fill=var,alpha=var))  + 
+  geom_boxplot(outlier.shape=NA)  +
+  labs(x = "Scenario", y = "Value")  + 
+  facet_wrap( ~ var, scales="free_y", ncol =1) + 
+  scale_fill_manual(values=c("gray85", "darkslategray4")) +
+  scale_alpha_manual(values=c(0.8,0.8)) +
+  scale_y_continuous(limits = c(0, 0.3)) +
+  theme_bw()+
+  theme(axis.text.x = element_text(size=24), 
+        axis.text.y = element_text(size=24),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size=24),
+        strip.text.x = element_blank(),
+        panel.grid.major = element_line(colour = grey(0.4),linetype =3 ),
+        strip.background = element_blank(),
+        
+        #legend.position="bottom",
+        # legend.title = element_blank(),
+        # legend.text = element_text(size=15),
+        legend.position = "none",
+        
+        # legend.position = c(.95, .95),
+        # legend.justification = c("right", "top"),
+        # legend.box.just = "right",
+        # legend.margin = margin(6, 6, 6, 6),
+        
+        panel.border = element_rect(colour = "black")) 
+
+
+
+OUTDIR <- ("~/Desktop/Review_FR/R2/Figures/DISPLACE/Indicators/")
+OUTFILE <- paste(OUTDIR, "F_plot_no_baseline",".png",sep ="")
+ggsave(OUTFILE, width = 15, height = 13, units = 'cm', dpi = 300 ) 
 
 ################################################################################
 
